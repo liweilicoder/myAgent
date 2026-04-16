@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gitmoji | An emoji guide for your commit messages</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header */
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .header-links a {
+      color: #c9d1d9;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .header-links a:hover {
+      color: #58a6ff;
+    }
+
+    /* Banner */
+    .banner {
+      text-align: center;
+      padding: 60px 0;
+    }
+
+    .banner h1 {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #f0f6fc;
+    }
+
+    .banner p {
+      font-size: 18px;
+      color: #8b949e;
+    }
+
+    /* Search */
+    .search-section {
+      padding: 20px 0 40px;
+    }
+
+    .search-box {
+      max-width: 600px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 16px 20px;
+      padding-right: 60px;
+      font-size: 16px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #c9d1d9;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: #58a6ff;
+    }
+
+    .search-box input::placeholder {
+      color: #6e7681;
+    }
+
+    .search-hint {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #21262d;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    /* Gitmoji Grid */
+    .gitmoji-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding-bottom: 60px;
+    }
+
+    .gitmoji-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .gitmoji-card:hover {
+      border-color: #58a6ff;
+    }
+
+    .gitmoji-emoji {
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .gitmoji-info {
+      flex: 1;
+    }
+
+    .gitmoji-code {
+      background: #388bfd26;
+      color: #58a6ff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .gitmoji-desc {
+      font-size: 14px;
+      color: #8b949e;
+      line-height: 1.4;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid #21262d;
+      padding: 40px 0;
+      text-align: center;
+    }
+
+    .footer-text {
+      color: #8b949e;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .footer-text a {
+      color: #c9d1d9;
+      text-decoration: none;
+    }
+
+    .footer-text a:hover {
+      color: #58a6ff;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    .footer-links a {
+      color: #8b949e;
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: #58a6ff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="logo-section">
+          <svg class="logo" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="64" cy="64" r="60" fill="#F7DF1E"/>
+            <path d="M89.9 96.5c-1.5 2.5-3.8 4.1-7.4 4.9-2.8.6-5.4.7-7.7.4-2.4-.3-4.6-1.1-6.7-2.3-.5-.3-1.2-.5-2.1-.7l-2.3-.6c-.8-.2-1.4-.4-1.9-.7-.5-.3-.8-.6-1.1-.9-.3-.4-.4-.8-.4-1.3 0-.4.1-.9.3-1.4l8.5-42.8c.2-1.1.5-2.1.8-2.9.3-.8.7-1.4 1.3-1.9.6-.5 1.3-.8 2.1-1 .8-.2 1.8-.3 2.8-.3 1.2 0 2.2.1 3.1.4.9.3 1.6.6 2.2 1.1.6.5 1 1 1.3 1.6.3.6.4 1.2.5 1.8l8.2 39.7c.2 1 .2 1.8.1 2.4-.1.6-.3 1.1-.6 1.5-.3.4-.7.7-1.2.9-.5.2-1.2.3-2 .3-.7 0-1.4-.1-1.9-.2-.5-.1-.9-.3-1.2-.5-.3-.2-.5-.4-.6-.6-.1-.2-.1-.4 0-.6 0-.2.1-.5.3-.8l1.8-3.5z" fill="#000"/>
+            <path d="M38.6 96.5c-1.5 2.5-3.8 4.1-7.4 4.9-2.8.6-5.4.7-7.7.4-2.4-.3-4.6-1.1-6.7-2.3-.5-.3-1.2-.5-2.1-.7l-2.3-.6c-.8-.2-1.4-.4-1.9-.7-.5-.3-.8-.6-1.1-.9-.3-.4-.4-.8-.4-1.3 0-.4.1-.9.3-1.4L19.8 51c.2-1.1.5-2.1.8-2.9.3-.8.7-1.4 1.3-1.9.6-.5 1.3-.8 2.1-1 .8-.2 1.8-.3 2.8-.3 1.2 0 2.2.1 3.1.4.9.3 1.6.6 2.2 1.1.6.5 1 1 1.3 1.6.3.6.4 1.2.5 1.8l8.2 39.7c.2 1 .2 1.8.1 2.4-.1.6-.3 1.1-.6 1.5-.3.4-.7.7-1.2.9-.5.2-1.2.3-2 .3-.7 0-1.4-.1-1.9-.2-.5-.1-.9-.3-1.2-.5-.3-.2-.5-.4-.6-.6-.1-.2-.1-.4 0-.6 0-.2.1-.5.3-.8l1.8-3.5z" fill="#000"/>
+            <path d="M64.3 44.5c2.5.3 4.5 1 6.1 2.1 1.6 1.1 2.9 2.5 3.8 4.3.9 1.8 1.4 3.9 1.5 6.3.1 2.5-.2 4.8-.9 7-1.8 5.8-5.5 9.4-10.9 10.8-1.5.4-2.9.6-4.4.6-2.5 0-4.8-.4-6.7-1.3-1.9-.9-3.5-2-4.7-3.4-1.2-1.4-2-3-2.4-4.7-.4-1.7-.4-3.4.1-5.1.4-1.4 1.1-2.7 1.9-4 1.6-2.4 3.9-4.4 6.7-5.9 2.9-1.5 6.3-2.3 10.4-2.3h.2l-.7 5.6zm-7.3 25.8c1.4-.7 2.7-1.8 3.8-3.1 1.1-1.3 1.9-3.1 2.3-5.3.4-2.2.3-4.1-.4-5.6-.7-1.5-1.7-2.6-3-3.2-1.3-.6-2.8-.8-4.5-.7-1.6.2-3.2.7-4.7 1.6-1.6.9-2.8 2-3.7 3.4-.9 1.4-1.3 3-1.3 4.8 0 .5 0 1.1.1 1.7.1.6.2 1.3.4 1.9.2.6.5 1.2.8 1.8.3.6.7 1.1 1.2 1.6.9 1.1 2 1.9 3.3 2.5 1.3.6 2.8.9 4.4.9.8 0 1.6-.1 2.4-.3z" fill="#000"/>
+          </svg>
+          <span class="logo-text">gitmoji</span>
+        </div>
+        <div class="header-links">
+          <a href="https://github.com/carloscuesta/gitmoji" target="_blank">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </a>
+          <a href="https://twitter.com/intent/tweet?text=gitmoji" target="_blank">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Share
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="banner">
+      <h1>gitmoji</h1>
+      <p>An emoji guide for your commit messages</p>
+    </div>
+
+    <div class="search-section">
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Search your gitmoji...">
+        <span class="search-hint">⌘ K</span>
+      </div>
+    </div>
+
+    <div class="gitmoji-grid" id="gitmoji-grid"></div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p class="footer-text">Made with <span style="color: #ff6b6b;">❤</span> by <a href="https://carloscuesta.me" target="_blank">Carlos Cuesta</a></p>
+      <div class="footer-links">
+        <a href="/about">About</a>
+        <a href="/contributors">Contributors</a>
+        <a href="https://github.com/carloscuesta/gitmoji" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const gitmojis = [
+      { emoji: "🎨", code: ":art:", desc: "Improve structure / format of the code." },
+      { emoji: "⚡️", code: ":zap:", desc: "Improve performance." },
+      { emoji: "🔥", code: ":fire:", desc: "Remove code or files." },
+      { emoji: "🐛", code: ":bug:", desc: "Fix a bug." },
+      { emoji: "🚑️", code: ":ambulance:", desc: "Critical hotfix." },
+      { emoji: "✨", code: ":sparkles:", desc: "Introduce new features." },
+      { emoji: "📝", code: ":memo:", desc: "Add or update documentation." },
+      { emoji: "🚀", code: ":rocket:", desc: "Deploy stuff." },
+      { emoji: "💄", code: ":lipstick:", desc: "Add or update the UI and style files." },
+      { emoji: "🎉", code: ":tada:", desc: "Begin a project." },
+      { emoji: "✅", code: ":white_check_mark:", desc: "Add, update, or pass tests." },
+      { emoji: "🔒️", code: ":lock:", desc: "Fix security or privacy issues." },
+      { emoji: "🔐", code: ":closed_lock_with_key:", desc: "Add or update secrets." },
+      { emoji: "🔖", code: ":bookmark:", desc: "Release / Version tags." },
+      { emoji: "🚨", code: ":rotating_light:", desc: "Fix compiler / linter warnings." },
+      { emoji: "🚧", code: ":construction:", desc: "Work in progress." },
+      { emoji: "💚", code: ":green_heart:", desc: "Fix CI Build." },
+      { emoji: "⬇️", code: ":arrow_down:", desc: "Downgrade dependencies." },
+      { emoji: "⬆️", code: ":arrow_up:", desc: "Upgrade dependencies." },
+      { emoji: "📌", code: ":pushpin:", desc: "Pin dependencies to specific versions." },
+      { emoji: "👷", code: ":construction_worker:", desc: "Add or update CI build system." },
+      { emoji: "📈", code: ":chart_with_upwards_trend:", desc: "Add or update analytics or track code." },
+      { emoji: "♻️", code: ":recycle:", desc: "Refactor code." },
+      { emoji: "➕", code: ":heavy_plus_sign:", desc: "Add a dependency." },
+      { emoji: "➖", code: ":heavy_minus_sign:", desc: "Remove a dependency." },
+      { emoji: "🔧", code: ":wrench:", desc: "Add or update configuration files." },
+      { emoji: "🔨", code: ":hammer:", desc: "Add or update development scripts." },
+      { emoji: "🌐", code: ":globe_with_meridians:", desc: "Internationalization and localization." },
+      { emoji: "✏️", code: ":pencil2:", desc: "Fix typos." },
+      { emoji: "💩", code: ":poop:", desc: "Write bad code that needs to be improved." },
+      { emoji: "⏪️", code: ":rewind:", desc: "Revert changes." },
+      { emoji: "🔀", code: ":twisted_rightwards_arrows:", desc: "Merge branches." },
+      { emoji: "📦️", code: ":package:", desc: "Add or update compiled files or packages." },
+      { emoji: "👽️", code: ":alien:", desc: "Update code due to external API changes." },
+      { emoji: "🚚", code: ":truck:", desc: "Move or rename resources." },
+      { emoji: "📄", code: ":page_facing_up:", desc: "Add or update license." },
+      { emoji: "💥", code: ":boom:", desc: "Introduce breaking changes." },
+      { emoji: "🍱", code: ":bento:", desc: "Add or update assets." },
+      { emoji: "♿️", code: ":wheelchair:", desc: "Improve accessibility." },
+      { emoji: "💡", code: ":bulb:", desc: "Add or update comments in source code." },
+      { emoji: "🍻", code: ":beers:", desc: "Write code drunkenly." },
+      { emoji: "💬", code: ":speech_balloon:", desc: "Add or update text and literals." },
+      { emoji: "🗃️", code: ":card_file_box:", desc: "Perform database related changes." },
+      { emoji: "🔊", code: ":loud_sound:", desc: "Add or update logs." },
+      { emoji: "🔇", code: ":mute:", desc: "Remove logs." },
+      { emoji: "👥", code: ":busts_in_silhouette:", desc: "Add or update contributor(s)." },
+      { emoji: "🚸", code: ":children_crossing:", desc: "Improve user experience / usability." },
+      { emoji: "🏗️", code: ":building_construction:", desc: "Make architectural changes." },
+      { emoji: "📱", code: ":iphone:", desc: "Work on responsive design." },
+      { emoji: "🤡", code: ":clown_face:", desc: "Mock things." },
+      { emoji: "🥚", code: ":egg:", desc: "Add or update an easter egg." },
+      { emoji: "🙈", code: ":see_no_evil:", desc: "Add or update a .gitignore file." },
+      { emoji: "📸", code: ":camera_flash:", desc: "Add or update snapshots." },
+      { emoji: "⚗️", code: ":alembic:", desc: "Perform experiments." },
+      { emoji: "🔍️", code: ":mag:", desc: "Improve SEO." },
+      { emoji: "🏷️", code: ":label:", desc: "Add or update types." },
+      { emoji: "🌱", code: ":seedling:", desc: "Add or update seed files." },
+      { emoji: "🚩", code: ":triangular_flag_on_post:", desc: "Add, update, or remove feature flags." },
+      { emoji: "🥅", code: ":goal_net:", desc: "Catch errors." },
+      { emoji: "💫", code: ":dizzy:", desc: "Add or update animations and transitions." },
+      { emoji: "🗑️", code: ":wastebasket:", desc: "Deprecate code that needs to be cleaned up." },
+      { emoji: "🛂", code: ":passport_control:", desc: "Work on code related to authorization, roles and permissions." },
+      { emoji: "🩹", code: ":adhesive_bandage:", desc: "Simple fix for a non-critical issue." },
+      { emoji: "🧐", code: ":monocle_face:", desc: "Data exploration/inspection." },
+      { emoji: "⚰️", code: ":coffin:", desc: "Remove dead code." },
+      { emoji: "🧪", code: ":test_tube:", desc: "Add a failing test." },
+      { emoji: "👔", code: ":necktie:", desc: "Add or update business logic." },
+      { emoji: "🩺", code: ":stethoscope:", desc: "Add or update healthcheck." },
+      { emoji: "🧱", code: ":bricks:", desc: "Infrastructure related changes." },
+      { emoji: "🧑‍💻", code: ":technologist:", desc: "Improve developer experience." },
+      { emoji: "💸", code: ":money_with_wings:", desc: "Add sponsorships or money related infrastructure." },
+      { emoji: "🧵", code: ":thread:", desc: "Add or update code related to multithreading or concurrency." },
+      { emoji: "🦺", code: ":safety_vest:", desc: "Add or update code related to validation." },
+      { emoji: "✈️", code: ":airplane:", desc: "Improve offline support." },
+      { emoji: "🦖", code: ":t-rex:", desc: "Code that adds backwards compatibility." }
+    ];
+
+    function renderGitmojis(filter = '') {
+      const grid = document.getElementById('gitmoji-grid');
+      const filtered = gitmojis.filter(g =>
+        g.desc.toLowerCase().includes(filter.toLowerCase()) ||
+        g.code.toLowerCase().includes(filter.toLowerCase()) ||
+        g.emoji.includes(filter)
+      );
+
+      grid.innerHTML = filtered.map(g => `
+        <div class="gitmoji-card">
+          <span class="gitmoji-emoji">${g.emoji}</span>
+          <div class="gitmoji-info">
+            <span class="gitmoji-code">${g.code}</span>
+            <p class="gitmoji-desc">${g.desc}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      renderGitmojis(e.target.value);
+    });
+
+    renderGitmojis();
+  </script>
+</body>
+</html>
