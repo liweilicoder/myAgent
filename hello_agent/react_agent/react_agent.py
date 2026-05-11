@@ -1,6 +1,6 @@
 from hello_agent.llm_client.llm_client import HelloAgentsLLM
 from hello_agent.tools_executor.tools_executor import ToolExecutor
-from hello_agent.prompt.react_agent import REACT_PROMPT_TEMPLATE
+from hello_agent.prompt.react import REACT_PROMPT_TEMPLATE
 import hello_agent.logger.logger as log
 import re
 
@@ -23,7 +23,15 @@ class ReActAgent:
             log.info(f"--- 第 {current_step} 步 ---")
 
             tools_desc = self.tool_executor.getAvailableTools()
-            history_str = "\n".join(self.history)
+            history_parts = []
+            for i in range(0, len(self.history), 2):
+                step = i // 2 + 1
+                history_parts.append(f"【Step {step}】 {self.history[i]}")
+                if i + 1 < len(self.history):
+                    history_parts.append(f"【Step {step}】 {self.history[i + 1]}")
+                if i + 2 < len(self.history):
+                    history_parts.append("---------------------------------------")
+            history_str = "\n".join(history_parts)
             prompt = REACT_PROMPT_TEMPLATE.format(tools=tools_desc, question=question, history=history_str)
 
             messages = [{"role": "user", "content": prompt}]
@@ -82,5 +90,5 @@ if __name__ == '__main__':
     search_desc = "一个网页搜索引擎。当你需要回答关于时事、事实以及在你的知识库中找不到的信息时，应使用此工具。"
     tool_executor.registerTool("Search", search_desc, search)
     agent = ReActAgent(llm_client=llm, tool_executor=tool_executor)
-    question = "苹果手机的最新型号是？有什么卖点？"
+    question = "Deepseek 的最新模型是什么？有什么优势？"
     agent.run(question)
