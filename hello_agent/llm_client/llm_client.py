@@ -10,7 +10,7 @@ load_dotenv()
 
 class HelloAgentsLLM:
     """
-    为本书 "Hello Agents" 定制的LLM客户端。
+    为"Hello Agents" 定制的LLM客户端。
     它用于调用任何兼容OpenAI接口的服务，并默认使用流式响应。
     """
 
