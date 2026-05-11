@@ -1,0 +1,703 @@
+- generic [active] [ref=e1]:
+  - img:
+    - generic:
+      - generic "heart"
+      - generic "star"
+      - generic "twitter"
+      - generic "twitter-x"
+      - generic "list"
+      - generic "grid"
+      - generic "light"
+      - generic "dark"
+  - button "Open navigation menu" [ref=e3] [cursor=pointer]:
+    - img [ref=e4]
+  - banner [ref=e6]:
+    - img "gitmoji" [ref=e7]
+    - heading "An emoji guide for your commit messages" [level=2] [ref=e23]
+    - generic [ref=e24]:
+      - link "GitHub" [ref=e25] [cursor=pointer]:
+        - /url: https://github.com/carloscuesta/gitmoji
+        - img [ref=e26]
+        - text: GitHub
+      - link "Share" [ref=e28] [cursor=pointer]:
+        - /url: https://twitter.com/intent/tweet?text=gitmoji%20%E2%80%93%20An%20%23emoji%20guide%20for%20your%20commit%20messages%20by%20%40crloscuesta%20%F0%9F%98%8D%F0%9F%98%9C&url=https://gitmoji.dev
+        - img [ref=e29]
+        - text: Share
+  - main [ref=e31]:
+    - main [ref=e32]:
+      - generic [ref=e35]:
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - searchbox "Search your gitmoji..." [ref=e39]
+            - generic [ref=e40]: ⌘ K
+          - generic [ref=e41]:
+            - button [ref=e42] [cursor=pointer]:
+              - img [ref=e43]
+            - generic [ref=e45]:
+              - button [disabled] [ref=e46] [cursor=pointer]:
+                - img [ref=e47]
+              - button [ref=e49] [cursor=pointer]:
+                - img [ref=e50]
+        - article [ref=e52]:
+          - generic [ref=e53]:
+            - button "🎨" [ref=e55] [cursor=pointer]
+            - generic [ref=e56]:
+              - button ":art:" [ref=e57] [cursor=pointer]:
+                - code [ref=e58]: ":art:"
+              - paragraph [ref=e59]: Improve structure / format of the code.
+        - article [ref=e60]:
+          - generic [ref=e61]:
+            - button "⚡️" [ref=e63] [cursor=pointer]
+            - generic [ref=e64]:
+              - button ":zap:" [ref=e65] [cursor=pointer]:
+                - code [ref=e66]: ":zap:"
+              - paragraph [ref=e67]: Improve performance.
+        - article [ref=e68]:
+          - generic [ref=e69]:
+            - button "🔥" [ref=e71] [cursor=pointer]
+            - generic [ref=e72]:
+              - button ":fire:" [ref=e73] [cursor=pointer]:
+                - code [ref=e74]: ":fire:"
+              - paragraph [ref=e75]: Remove code or files.
+        - article [ref=e76]:
+          - generic [ref=e77]:
+            - button "🐛" [ref=e79] [cursor=pointer]
+            - generic [ref=e80]:
+              - button ":bug:" [ref=e81] [cursor=pointer]:
+                - code [ref=e82]: ":bug:"
+              - paragraph [ref=e83]: Fix a bug.
+        - article [ref=e84]:
+          - generic [ref=e85]:
+            - button "🚑️" [ref=e87] [cursor=pointer]
+            - generic [ref=e88]:
+              - button ":ambulance:" [ref=e89] [cursor=pointer]:
+                - code [ref=e90]: ":ambulance:"
+              - paragraph [ref=e91]: Critical hotfix.
+        - article [ref=e92]:
+          - generic [ref=e93]:
+            - button "✨" [ref=e95] [cursor=pointer]
+            - generic [ref=e96]:
+              - button ":sparkles:" [ref=e97] [cursor=pointer]:
+                - code [ref=e98]: ":sparkles:"
+              - paragraph [ref=e99]: Introduce new features.
+        - article [ref=e100]:
+          - generic [ref=e101]:
+            - button "📝" [ref=e103] [cursor=pointer]
+            - generic [ref=e104]:
+              - button ":memo:" [ref=e105] [cursor=pointer]:
+                - code [ref=e106]: ":memo:"
+              - paragraph [ref=e107]: Add or update documentation.
+        - article [ref=e108]:
+          - generic [ref=e109]:
+            - button "🚀" [ref=e111] [cursor=pointer]
+            - generic [ref=e112]:
+              - button ":rocket:" [ref=e113] [cursor=pointer]:
+                - code [ref=e114]: ":rocket:"
+              - paragraph [ref=e115]: Deploy stuff.
+        - article [ref=e116]:
+          - generic [ref=e117]:
+            - button "💄" [ref=e119] [cursor=pointer]
+            - generic [ref=e120]:
+              - button ":lipstick:" [ref=e121] [cursor=pointer]:
+                - code [ref=e122]: ":lipstick:"
+              - paragraph [ref=e123]: Add or update the UI and style files.
+        - article [ref=e124]:
+          - generic [ref=e125]:
+            - button "🎉" [ref=e127] [cursor=pointer]
+            - generic [ref=e128]:
+              - button ":tada:" [ref=e129] [cursor=pointer]:
+                - code [ref=e130]: ":tada:"
+              - paragraph [ref=e131]: Begin a project.
+        - article [ref=e132]:
+          - generic [ref=e133]:
+            - button "✅" [ref=e135] [cursor=pointer]
+            - generic [ref=e136]:
+              - button ":white_check_mark:" [ref=e137] [cursor=pointer]:
+                - code [ref=e138]:
+                  - text: :white
+                  - generic [ref=e139]: _
+                  - text: check
+                  - generic [ref=e140]: _
+                  - text: "mark:"
+              - paragraph [ref=e141]: Add, update, or pass tests.
+        - article [ref=e142]:
+          - generic [ref=e143]:
+            - button "🔒️" [ref=e145] [cursor=pointer]
+            - generic [ref=e146]:
+              - button ":lock:" [ref=e147] [cursor=pointer]:
+                - code [ref=e148]: ":lock:"
+              - paragraph [ref=e149]: Fix security or privacy issues.
+        - article [ref=e150]:
+          - generic [ref=e151]:
+            - button "🔐" [ref=e153] [cursor=pointer]
+            - generic [ref=e154]:
+              - button ":closed_lock_with_key:" [ref=e155] [cursor=pointer]:
+                - code [ref=e156]:
+                  - text: :closed
+                  - generic [ref=e157]: _
+                  - text: lock
+                  - generic [ref=e158]: _
+                  - text: with
+                  - generic [ref=e159]: _
+                  - text: "key:"
+              - paragraph [ref=e160]: Add or update secrets.
+        - article [ref=e161]:
+          - generic [ref=e162]:
+            - button "🔖" [ref=e164] [cursor=pointer]
+            - generic [ref=e165]:
+              - button ":bookmark:" [ref=e166] [cursor=pointer]:
+                - code [ref=e167]: ":bookmark:"
+              - paragraph [ref=e168]: Release / Version tags.
+        - article [ref=e169]:
+          - generic [ref=e170]:
+            - button "🚨" [ref=e172] [cursor=pointer]
+            - generic [ref=e173]:
+              - button ":rotating_light:" [ref=e174] [cursor=pointer]:
+                - code [ref=e175]:
+                  - text: :rotating
+                  - generic [ref=e176]: _
+                  - text: "light:"
+              - paragraph [ref=e177]: Fix compiler / linter warnings.
+        - article [ref=e178]:
+          - generic [ref=e179]:
+            - button "🚧" [ref=e181] [cursor=pointer]
+            - generic [ref=e182]:
+              - button ":construction:" [ref=e183] [cursor=pointer]:
+                - code [ref=e184]: ":construction:"
+              - paragraph [ref=e185]: Work in progress.
+        - article [ref=e186]:
+          - generic [ref=e187]:
+            - button "💚" [ref=e189] [cursor=pointer]
+            - generic [ref=e190]:
+              - button ":green_heart:" [ref=e191] [cursor=pointer]:
+                - code [ref=e192]:
+                  - text: :green
+                  - generic [ref=e193]: _
+                  - text: "heart:"
+              - paragraph [ref=e194]: Fix CI Build.
+        - article [ref=e195]:
+          - generic [ref=e196]:
+            - button "⬇️" [ref=e198] [cursor=pointer]
+            - generic [ref=e199]:
+              - button ":arrow_down:" [ref=e200] [cursor=pointer]:
+                - code [ref=e201]:
+                  - text: :arrow
+                  - generic [ref=e202]: _
+                  - text: "down:"
+              - paragraph [ref=e203]: Downgrade dependencies.
+        - article [ref=e204]:
+          - generic [ref=e205]:
+            - button "⬆️" [ref=e207] [cursor=pointer]
+            - generic [ref=e208]:
+              - button ":arrow_up:" [ref=e209] [cursor=pointer]:
+                - code [ref=e210]:
+                  - text: :arrow
+                  - generic [ref=e211]: _
+                  - text: "up:"
+              - paragraph [ref=e212]: Upgrade dependencies.
+        - article [ref=e213]:
+          - generic [ref=e214]:
+            - button "📌" [ref=e216] [cursor=pointer]
+            - generic [ref=e217]:
+              - button ":pushpin:" [ref=e218] [cursor=pointer]:
+                - code [ref=e219]: ":pushpin:"
+              - paragraph [ref=e220]: Pin dependencies to specific versions.
+        - article [ref=e221]:
+          - generic [ref=e222]:
+            - button "👷" [ref=e224] [cursor=pointer]
+            - generic [ref=e225]:
+              - button ":construction_worker:" [ref=e226] [cursor=pointer]:
+                - code [ref=e227]:
+                  - text: :construction
+                  - generic [ref=e228]: _
+                  - text: "worker:"
+              - paragraph [ref=e229]: Add or update CI build system.
+        - article [ref=e230]:
+          - generic [ref=e231]:
+            - button "📈" [ref=e233] [cursor=pointer]
+            - generic [ref=e234]:
+              - button ":chart_with_upwards_trend:" [ref=e235] [cursor=pointer]:
+                - code [ref=e236]:
+                  - text: :chart
+                  - generic [ref=e237]: _
+                  - text: with
+                  - generic [ref=e238]: _
+                  - text: upwards
+                  - generic [ref=e239]: _
+                  - text: "trend:"
+              - paragraph [ref=e240]: Add or update analytics or track code.
+        - article [ref=e241]:
+          - generic [ref=e242]:
+            - button "♻️" [ref=e244] [cursor=pointer]
+            - generic [ref=e245]:
+              - button ":recycle:" [ref=e246] [cursor=pointer]:
+                - code [ref=e247]: ":recycle:"
+              - paragraph [ref=e248]: Refactor code.
+        - article [ref=e249]:
+          - generic [ref=e250]:
+            - button "➕" [ref=e252] [cursor=pointer]
+            - generic [ref=e253]:
+              - button ":heavy_plus_sign:" [ref=e254] [cursor=pointer]:
+                - code [ref=e255]:
+                  - text: :heavy
+                  - generic [ref=e256]: _
+                  - text: plus
+                  - generic [ref=e257]: _
+                  - text: "sign:"
+              - paragraph [ref=e258]: Add a dependency.
+        - article [ref=e259]:
+          - generic [ref=e260]:
+            - button "➖" [ref=e262] [cursor=pointer]
+            - generic [ref=e263]:
+              - button ":heavy_minus_sign:" [ref=e264] [cursor=pointer]:
+                - code [ref=e265]:
+                  - text: :heavy
+                  - generic [ref=e266]: _
+                  - text: minus
+                  - generic [ref=e267]: _
+                  - text: "sign:"
+              - paragraph [ref=e268]: Remove a dependency.
+        - article [ref=e269]:
+          - generic [ref=e270]:
+            - button "🔧" [ref=e272] [cursor=pointer]
+            - generic [ref=e273]:
+              - button ":wrench:" [ref=e274] [cursor=pointer]:
+                - code [ref=e275]: ":wrench:"
+              - paragraph [ref=e276]: Add or update configuration files.
+        - article [ref=e277]:
+          - generic [ref=e278]:
+            - button "🔨" [ref=e280] [cursor=pointer]
+            - generic [ref=e281]:
+              - button ":hammer:" [ref=e282] [cursor=pointer]:
+                - code [ref=e283]: ":hammer:"
+              - paragraph [ref=e284]: Add or update development scripts.
+        - article [ref=e285]:
+          - generic [ref=e286]:
+            - button "🌐" [ref=e288] [cursor=pointer]
+            - generic [ref=e289]:
+              - button ":globe_with_meridians:" [ref=e290] [cursor=pointer]:
+                - code [ref=e291]:
+                  - text: :globe
+                  - generic [ref=e292]: _
+                  - text: with
+                  - generic [ref=e293]: _
+                  - text: "meridians:"
+              - paragraph [ref=e294]: Internationalization and localization.
+        - article [ref=e295]:
+          - generic [ref=e296]:
+            - button "✏️" [ref=e298] [cursor=pointer]
+            - generic [ref=e299]:
+              - button ":pencil2:" [ref=e300] [cursor=pointer]:
+                - code [ref=e301]: ":pencil2:"
+              - paragraph [ref=e302]: Fix typos.
+        - article [ref=e303]:
+          - generic [ref=e304]:
+            - button "💩" [ref=e306] [cursor=pointer]
+            - generic [ref=e307]:
+              - button ":poop:" [ref=e308] [cursor=pointer]:
+                - code [ref=e309]: ":poop:"
+              - paragraph [ref=e310]: Write bad code that needs to be improved.
+        - article [ref=e311]:
+          - generic [ref=e312]:
+            - button "⏪️" [ref=e314] [cursor=pointer]
+            - generic [ref=e315]:
+              - button ":rewind:" [ref=e316] [cursor=pointer]:
+                - code [ref=e317]: ":rewind:"
+              - paragraph [ref=e318]: Revert changes.
+        - article [ref=e319]:
+          - generic [ref=e320]:
+            - button "🔀" [ref=e322] [cursor=pointer]
+            - generic [ref=e323]:
+              - button ":twisted_rightwards_arrows:" [ref=e324] [cursor=pointer]:
+                - code [ref=e325]:
+                  - text: :twisted
+                  - generic [ref=e326]: _
+                  - text: rightwards
+                  - generic [ref=e327]: _
+                  - text: "arrows:"
+              - paragraph [ref=e328]: Merge branches.
+        - article [ref=e329]:
+          - generic [ref=e330]:
+            - button "📦️" [ref=e332] [cursor=pointer]
+            - generic [ref=e333]:
+              - button ":package:" [ref=e334] [cursor=pointer]:
+                - code [ref=e335]: ":package:"
+              - paragraph [ref=e336]: Add or update compiled files or packages.
+        - article [ref=e337]:
+          - generic [ref=e338]:
+            - button "👽️" [ref=e340] [cursor=pointer]
+            - generic [ref=e341]:
+              - button ":alien:" [ref=e342] [cursor=pointer]:
+                - code [ref=e343]: ":alien:"
+              - paragraph [ref=e344]: Update code due to external API changes.
+        - article [ref=e345]:
+          - generic [ref=e346]:
+            - button "🚚" [ref=e348] [cursor=pointer]
+            - generic [ref=e349]:
+              - button ":truck:" [ref=e350] [cursor=pointer]:
+                - code [ref=e351]: ":truck:"
+              - paragraph [ref=e352]: "Move or rename resources (e.g.: files, paths, routes)."
+        - article [ref=e353]:
+          - generic [ref=e354]:
+            - button "📄" [ref=e356] [cursor=pointer]
+            - generic [ref=e357]:
+              - button ":page_facing_up:" [ref=e358] [cursor=pointer]:
+                - code [ref=e359]:
+                  - text: :page
+                  - generic [ref=e360]: _
+                  - text: facing
+                  - generic [ref=e361]: _
+                  - text: "up:"
+              - paragraph [ref=e362]: Add or update license.
+        - article [ref=e363]:
+          - generic [ref=e364]:
+            - button "💥" [ref=e366] [cursor=pointer]
+            - generic [ref=e367]:
+              - button ":boom:" [ref=e368] [cursor=pointer]:
+                - code [ref=e369]: ":boom:"
+              - paragraph [ref=e370]: Introduce breaking changes.
+        - article [ref=e371]:
+          - generic [ref=e372]:
+            - button "🍱" [ref=e374] [cursor=pointer]
+            - generic [ref=e375]:
+              - button ":bento:" [ref=e376] [cursor=pointer]:
+                - code [ref=e377]: ":bento:"
+              - paragraph [ref=e378]: Add or update assets.
+        - article [ref=e379]:
+          - generic [ref=e380]:
+            - button "♿️" [ref=e382] [cursor=pointer]
+            - generic [ref=e383]:
+              - button ":wheelchair:" [ref=e384] [cursor=pointer]:
+                - code [ref=e385]: ":wheelchair:"
+              - paragraph [ref=e386]: Improve accessibility.
+        - article [ref=e387]:
+          - generic [ref=e388]:
+            - button "💡" [ref=e390] [cursor=pointer]
+            - generic [ref=e391]:
+              - button ":bulb:" [ref=e392] [cursor=pointer]:
+                - code [ref=e393]: ":bulb:"
+              - paragraph [ref=e394]: Add or update comments in source code.
+        - article [ref=e395]:
+          - generic [ref=e396]:
+            - button "🍻" [ref=e398] [cursor=pointer]
+            - generic [ref=e399]:
+              - button ":beers:" [ref=e400] [cursor=pointer]:
+                - code [ref=e401]: ":beers:"
+              - paragraph [ref=e402]: Write code drunkenly.
+        - article [ref=e403]:
+          - generic [ref=e404]:
+            - button "💬" [ref=e406] [cursor=pointer]
+            - generic [ref=e407]:
+              - button ":speech_balloon:" [ref=e408] [cursor=pointer]:
+                - code [ref=e409]:
+                  - text: :speech
+                  - generic [ref=e410]: _
+                  - text: "balloon:"
+              - paragraph [ref=e411]: Add or update text and literals.
+        - article [ref=e412]:
+          - generic [ref=e413]:
+            - button "🗃️" [ref=e415] [cursor=pointer]
+            - generic [ref=e416]:
+              - button ":card_file_box:" [ref=e417] [cursor=pointer]:
+                - code [ref=e418]:
+                  - text: :card
+                  - generic [ref=e419]: _
+                  - text: file
+                  - generic [ref=e420]: _
+                  - text: "box:"
+              - paragraph [ref=e421]: Perform database related changes.
+        - article [ref=e422]:
+          - generic [ref=e423]:
+            - button "🔊" [ref=e425] [cursor=pointer]
+            - generic [ref=e426]:
+              - button ":loud_sound:" [ref=e427] [cursor=pointer]:
+                - code [ref=e428]:
+                  - text: :loud
+                  - generic [ref=e429]: _
+                  - text: "sound:"
+              - paragraph [ref=e430]: Add or update logs.
+        - article [ref=e431]:
+          - generic [ref=e432]:
+            - button "🔇" [ref=e434] [cursor=pointer]
+            - generic [ref=e435]:
+              - button ":mute:" [ref=e436] [cursor=pointer]:
+                - code [ref=e437]: ":mute:"
+              - paragraph [ref=e438]: Remove logs.
+        - article [ref=e439]:
+          - generic [ref=e440]:
+            - button "👥" [ref=e442] [cursor=pointer]
+            - generic [ref=e443]:
+              - button ":busts_in_silhouette:" [ref=e444] [cursor=pointer]:
+                - code [ref=e445]:
+                  - text: :busts
+                  - generic [ref=e446]: _
+                  - text: in
+                  - generic [ref=e447]: _
+                  - text: "silhouette:"
+              - paragraph [ref=e448]: Add or update contributor(s).
+        - article [ref=e449]:
+          - generic [ref=e450]:
+            - button "🚸" [ref=e452] [cursor=pointer]
+            - generic [ref=e453]:
+              - button ":children_crossing:" [ref=e454] [cursor=pointer]:
+                - code [ref=e455]:
+                  - text: :children
+                  - generic [ref=e456]: _
+                  - text: "crossing:"
+              - paragraph [ref=e457]: Improve user experience / usability.
+        - article [ref=e458]:
+          - generic [ref=e459]:
+            - button "🏗️" [ref=e461] [cursor=pointer]
+            - generic [ref=e462]:
+              - button ":building_construction:" [ref=e463] [cursor=pointer]:
+                - code [ref=e464]:
+                  - text: :building
+                  - generic [ref=e465]: _
+                  - text: "construction:"
+              - paragraph [ref=e466]: Make architectural changes.
+        - article [ref=e467]:
+          - generic [ref=e468]:
+            - button "📱" [ref=e470] [cursor=pointer]
+            - generic [ref=e471]:
+              - button ":iphone:" [ref=e472] [cursor=pointer]:
+                - code [ref=e473]: ":iphone:"
+              - paragraph [ref=e474]: Work on responsive design.
+        - article [ref=e475]:
+          - generic [ref=e476]:
+            - button "🤡" [ref=e478] [cursor=pointer]
+            - generic [ref=e479]:
+              - button ":clown_face:" [ref=e480] [cursor=pointer]:
+                - code [ref=e481]:
+                  - text: :clown
+                  - generic [ref=e482]: _
+                  - text: "face:"
+              - paragraph [ref=e483]: Mock things.
+        - article [ref=e484]:
+          - generic [ref=e485]:
+            - button "🥚" [ref=e487] [cursor=pointer]
+            - generic [ref=e488]:
+              - button ":egg:" [ref=e489] [cursor=pointer]:
+                - code [ref=e490]: ":egg:"
+              - paragraph [ref=e491]: Add or update an easter egg.
+        - article [ref=e492]:
+          - generic [ref=e493]:
+            - button "🙈" [ref=e495] [cursor=pointer]
+            - generic [ref=e496]:
+              - button ":see_no_evil:" [ref=e497] [cursor=pointer]:
+                - code [ref=e498]:
+                  - text: :see
+                  - generic [ref=e499]: _
+                  - text: "no"
+                  - generic [ref=e500]: _
+                  - text: "evil:"
+              - paragraph [ref=e501]: Add or update a .gitignore file.
+        - article [ref=e502]:
+          - generic [ref=e503]:
+            - button "📸" [ref=e505] [cursor=pointer]
+            - generic [ref=e506]:
+              - button ":camera_flash:" [ref=e507] [cursor=pointer]:
+                - code [ref=e508]:
+                  - text: :camera
+                  - generic [ref=e509]: _
+                  - text: "flash:"
+              - paragraph [ref=e510]: Add or update snapshots.
+        - article [ref=e511]:
+          - generic [ref=e512]:
+            - button "⚗️" [ref=e514] [cursor=pointer]
+            - generic [ref=e515]:
+              - button ":alembic:" [ref=e516] [cursor=pointer]:
+                - code [ref=e517]: ":alembic:"
+              - paragraph [ref=e518]: Perform experiments.
+        - article [ref=e519]:
+          - generic [ref=e520]:
+            - button "🔍️" [ref=e522] [cursor=pointer]
+            - generic [ref=e523]:
+              - button ":mag:" [ref=e524] [cursor=pointer]:
+                - code [ref=e525]: ":mag:"
+              - paragraph [ref=e526]: Improve SEO.
+        - article [ref=e527]:
+          - generic [ref=e528]:
+            - button "🏷️" [ref=e530] [cursor=pointer]
+            - generic [ref=e531]:
+              - button ":label:" [ref=e532] [cursor=pointer]:
+                - code [ref=e533]: ":label:"
+              - paragraph [ref=e534]: Add or update types.
+        - article [ref=e535]:
+          - generic [ref=e536]:
+            - button "🌱" [ref=e538] [cursor=pointer]
+            - generic [ref=e539]:
+              - button ":seedling:" [ref=e540] [cursor=pointer]:
+                - code [ref=e541]: ":seedling:"
+              - paragraph [ref=e542]: Add or update seed files.
+        - article [ref=e543]:
+          - generic [ref=e544]:
+            - button "🚩" [ref=e546] [cursor=pointer]
+            - generic [ref=e547]:
+              - button ":triangular_flag_on_post:" [ref=e548] [cursor=pointer]:
+                - code [ref=e549]:
+                  - text: :triangular
+                  - generic [ref=e550]: _
+                  - text: flag
+                  - generic [ref=e551]: _
+                  - text: "on"
+                  - generic [ref=e552]: _
+                  - text: "post:"
+              - paragraph [ref=e553]: Add, update, or remove feature flags.
+        - article [ref=e554]:
+          - generic [ref=e555]:
+            - button "🥅" [ref=e557] [cursor=pointer]
+            - generic [ref=e558]:
+              - button ":goal_net:" [ref=e559] [cursor=pointer]:
+                - code [ref=e560]:
+                  - text: :goal
+                  - generic [ref=e561]: _
+                  - text: "net:"
+              - paragraph [ref=e562]: Catch errors.
+        - article [ref=e563]:
+          - generic [ref=e564]:
+            - button "💫" [ref=e566] [cursor=pointer]
+            - generic [ref=e567]:
+              - button ":dizzy:" [ref=e568] [cursor=pointer]:
+                - code [ref=e569]: ":dizzy:"
+              - paragraph [ref=e570]: Add or update animations and transitions.
+        - article [ref=e571]:
+          - generic [ref=e572]:
+            - button "🗑️" [ref=e574] [cursor=pointer]
+            - generic [ref=e575]:
+              - button ":wastebasket:" [ref=e576] [cursor=pointer]:
+                - code [ref=e577]: ":wastebasket:"
+              - paragraph [ref=e578]: Deprecate code that needs to be cleaned up.
+        - article [ref=e579]:
+          - generic [ref=e580]:
+            - button "🛂" [ref=e582] [cursor=pointer]
+            - generic [ref=e583]:
+              - button ":passport_control:" [ref=e584] [cursor=pointer]:
+                - code [ref=e585]:
+                  - text: :passport
+                  - generic [ref=e586]: _
+                  - text: "control:"
+              - paragraph [ref=e587]: Work on code related to authorization, roles and permissions.
+        - article [ref=e588]:
+          - generic [ref=e589]:
+            - button "🩹" [ref=e591] [cursor=pointer]
+            - generic [ref=e592]:
+              - button ":adhesive_bandage:" [ref=e593] [cursor=pointer]:
+                - code [ref=e594]:
+                  - text: :adhesive
+                  - generic [ref=e595]: _
+                  - text: "bandage:"
+              - paragraph [ref=e596]: Simple fix for a non-critical issue.
+        - article [ref=e597]:
+          - generic [ref=e598]:
+            - button "🧐" [ref=e600] [cursor=pointer]
+            - generic [ref=e601]:
+              - button ":monocle_face:" [ref=e602] [cursor=pointer]:
+                - code [ref=e603]:
+                  - text: :monocle
+                  - generic [ref=e604]: _
+                  - text: "face:"
+              - paragraph [ref=e605]: Data exploration/inspection.
+        - article [ref=e606]:
+          - generic [ref=e607]:
+            - button "⚰️" [ref=e609] [cursor=pointer]
+            - generic [ref=e610]:
+              - button ":coffin:" [ref=e611] [cursor=pointer]:
+                - code [ref=e612]: ":coffin:"
+              - paragraph [ref=e613]: Remove dead code.
+        - article [ref=e614]:
+          - generic [ref=e615]:
+            - button "🧪" [ref=e617] [cursor=pointer]
+            - generic [ref=e618]:
+              - button ":test_tube:" [ref=e619] [cursor=pointer]:
+                - code [ref=e620]:
+                  - text: :test
+                  - generic [ref=e621]: _
+                  - text: "tube:"
+              - paragraph [ref=e622]: Add a failing test.
+        - article [ref=e623]:
+          - generic [ref=e624]:
+            - button "👔" [ref=e626] [cursor=pointer]
+            - generic [ref=e627]:
+              - button ":necktie:" [ref=e628] [cursor=pointer]:
+                - code [ref=e629]: ":necktie:"
+              - paragraph [ref=e630]: Add or update business logic.
+        - article [ref=e631]:
+          - generic [ref=e632]:
+            - button "🩺" [ref=e634] [cursor=pointer]
+            - generic [ref=e635]:
+              - button ":stethoscope:" [ref=e636] [cursor=pointer]:
+                - code [ref=e637]: ":stethoscope:"
+              - paragraph [ref=e638]: Add or update healthcheck.
+        - article [ref=e639]:
+          - generic [ref=e640]:
+            - button "🧱" [ref=e642] [cursor=pointer]
+            - generic [ref=e643]:
+              - button ":bricks:" [ref=e644] [cursor=pointer]:
+                - code [ref=e645]: ":bricks:"
+              - paragraph [ref=e646]: Infrastructure related changes.
+        - article [ref=e647]:
+          - generic [ref=e648]:
+            - button "🧑‍💻" [ref=e650] [cursor=pointer]
+            - generic [ref=e651]:
+              - button ":technologist:" [ref=e652] [cursor=pointer]:
+                - code [ref=e653]: ":technologist:"
+              - paragraph [ref=e654]: Improve developer experience.
+        - article [ref=e655]:
+          - generic [ref=e656]:
+            - button "💸" [ref=e658] [cursor=pointer]
+            - generic [ref=e659]:
+              - button ":money_with_wings:" [ref=e660] [cursor=pointer]:
+                - code [ref=e661]:
+                  - text: :money
+                  - generic [ref=e662]: _
+                  - text: with
+                  - generic [ref=e663]: _
+                  - text: "wings:"
+              - paragraph [ref=e664]: Add sponsorships or money related infrastructure.
+        - article [ref=e665]:
+          - generic [ref=e666]:
+            - button "🧵" [ref=e668] [cursor=pointer]
+            - generic [ref=e669]:
+              - button ":thread:" [ref=e670] [cursor=pointer]:
+                - code [ref=e671]: ":thread:"
+              - paragraph [ref=e672]: Add or update code related to multithreading or concurrency.
+        - article [ref=e673]:
+          - generic [ref=e674]:
+            - button "🦺" [ref=e676] [cursor=pointer]
+            - generic [ref=e677]:
+              - button ":safety_vest:" [ref=e678] [cursor=pointer]:
+                - code [ref=e679]:
+                  - text: :safety
+                  - generic [ref=e680]: _
+                  - text: "vest:"
+              - paragraph [ref=e681]: Add or update code related to validation.
+        - article [ref=e682]:
+          - generic [ref=e683]:
+            - button "✈️" [ref=e685] [cursor=pointer]
+            - generic [ref=e686]:
+              - button ":airplane:" [ref=e687] [cursor=pointer]:
+                - code [ref=e688]: ":airplane:"
+              - paragraph [ref=e689]: Improve offline support.
+        - article [ref=e690]:
+          - generic [ref=e691]:
+            - button "🦖" [ref=e693] [cursor=pointer]
+            - generic [ref=e694]:
+              - button ":t-rex:" [ref=e695] [cursor=pointer]:
+                - code [ref=e696]: ":t-rex:"
+              - paragraph [ref=e697]: Code that adds backwards compatibility.
+  - contentinfo [ref=e698]:
+    - generic [ref=e700]:
+      - heading "Made with by Carlos Cuesta" [level=3] [ref=e702]:
+        - text: Made with
+        - img [ref=e703]
+        - text: by
+        - link "Carlos Cuesta" [ref=e705] [cursor=pointer]:
+          - /url: https://carloscuesta.me
+      - navigation [ref=e707]:
+        - link "About·" [ref=e708] [cursor=pointer]:
+          - /url: /about
+        - link "Contributors·" [ref=e709] [cursor=pointer]:
+          - /url: /contributors
+        - link "GitHub" [ref=e710] [cursor=pointer]:
+          - /url: https://github.com/carloscuesta/gitmoji
+  - alert [ref=e711]

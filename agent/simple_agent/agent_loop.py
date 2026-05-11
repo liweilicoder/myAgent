@@ -29,10 +29,10 @@ def chat(user_prompt: str):
 
         full_prompt = "\n".join(prompt_history)
 
-        llm_output = llm.generate(full_prompt, system_prompt=AGENT_SYSTEM_PROMPT)
-
         indented_prompt = "\n".join(f"  {line}" for line in full_prompt.split("\n"))
         log.debug(f"llm模型输入:\n{indented_prompt}\n")
+
+        llm_output = llm.generate(full_prompt, system_prompt=AGENT_SYSTEM_PROMPT)
 
         match = re.search(r'(Thought:.*?Action:.*?)(?=\n\s*(?:Thought:|Action:|Observation:)|\Z)', llm_output, re.DOTALL)
         if match:
@@ -58,7 +58,7 @@ def chat(user_prompt: str):
         action_str = action_match.group(1).strip()
 
         if action_str.startswith("Finish"):
-            match = re.match(r"Finish\[(.*)\]", action_str)
+            match = re.match(r"Finish\[(.*)\]", action_str, re.DOTALL)
             if match:
                 final_answer = match.group(1)
                 log.success(f"任务完成，最终答案: {final_answer}")
@@ -86,3 +86,7 @@ def chat(user_prompt: str):
         log.info(observation_str)
         log.separator()
         prompt_history.append(observation_str)
+
+
+if __name__ == '__main__':
+    chat("你好，请帮我查询一下今天杭州的天气，然后根据天气推荐一个合适的旅游景点。")

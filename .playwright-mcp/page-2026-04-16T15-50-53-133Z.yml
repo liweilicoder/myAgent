@@ -1,0 +1,517 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - link "跳到主要内容" [ref=e2] [cursor=pointer]
+      - link "无障碍功能帮助" [ref=e3] [cursor=pointer]:
+        - /url: https://support.google.com/websearch/answer/181196?hl=zh-CN
+      - link "无障碍功能反馈" [ref=e4] [cursor=pointer]
+  - generic [ref=e9]:
+    - search [ref=e10]:
+      - generic [ref=e12]:
+        - link "Google 首页" [ref=e14] [cursor=pointer]:
+          - /url: https://www.google.com/webhp?hl=zh-CN&sa=X&ved=0ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0QPAgJ
+          - img [ref=e15]
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - combobox "搜索" [ref=e26]: Mac耳机 Mac耳机
+            - generic [ref=e27]:
+              - button "清除" [ref=e29] [cursor=pointer]:
+                - img [ref=e31]
+              - generic [ref=e34]:
+                - button "按语音搜索" [ref=e35] [cursor=pointer]:
+                  - img [ref=e36]
+                - button "按图搜索" [ref=e38] [cursor=pointer]:
+                  - img [ref=e39]
+          - button "搜索" [ref=e41] [cursor=pointer]:
+            - img [ref=e44]
+    - generic [ref=e46]:
+      - button "设置" [ref=e48] [cursor=pointer]:
+        - img [ref=e51]
+      - generic [ref=e54]:
+        - button "Google 应用" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+        - link "登录" [ref=e61] [cursor=pointer]:
+          - /url: https://accounts.google.com/ServiceLogin?hl=zh-CN&passive=true&continue=https://www.google.com/search%3Fq%3DMac%25E8%2580%25B3%25E6%259C%25BA%26sca_esv%3D00e10f0057297768%26source%3Dhp%26ei%3DNgXhac3gB57LkPIP2rPVgQc%26iflsig%3DAFdpzrgAAAAAaeETRpq0tcIG2WzH9WOOO4YJUELzXtUc%26ved%3D0ahUKEwjN05TO3PKTAxWeJUQIHdpZNXAQ4dUDCA4%26uact%3D5%26oq%3DMac%25E8%2580%25B3%25E6%259C%25BA%26gs_lp%3DEgdnd3Mtd2l6IglNYWPogLPmnLpICFAAWABwAHgAkAEAmAEAoAEAqgEAuAEDyAEA-AEBmAIAoAIAmAMAkgcAoAcAsgcAuAcAwgcAyAcAgAgA%26sclient%3Dgws-wiz%26sei%3DWwXhaeXyCdio0PEPlMft8QY&ec=futura_srp_og_si_72236_p
+  - generic [ref=e63]:
+    - navigation [ref=e69]:
+      - generic [ref=e73]:
+        - list [ref=e74]:
+          - listitem [ref=e75]:
+            - link "AI 模式" [ref=e78] [cursor=pointer]:
+              - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&udm=50&source=hp&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&aep=1&ntc=1&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q2J8OegQIExAE
+              - generic [ref=e81]: AI 模式
+          - listitem [ref=e82]:
+            - link "全部" [disabled] [ref=e83]:
+              - generic [ref=e85]: 全部
+          - listitem [ref=e86]:
+            - link "购物" [ref=e87] [cursor=pointer]:
+              - /url: /search?sca_esv=00e10f0057297768&udm=28&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&q=Mac%E8%80%B3%E6%9C%BA&ved=1t:220175&ictx=111
+              - generic [ref=e89]: 购物
+          - listitem [ref=e90]:
+            - link "图片" [ref=e91] [cursor=pointer]:
+              - /url: /search?sca_esv=00e10f0057297768&udm=2&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&q=Mac%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0QtKgLegQIGBAB
+              - generic [ref=e93]: 图片
+          - listitem [ref=e94]:
+            - link "视频" [ref=e95] [cursor=pointer]:
+              - /url: /search?sca_esv=00e10f0057297768&udm=7&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&q=Mac%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0QtKgLegQIFxAB
+              - generic [ref=e97]: 视频
+          - listitem [ref=e98]:
+            - link "短视频" [ref=e99] [cursor=pointer]:
+              - /url: /search?sca_esv=00e10f0057297768&udm=39&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&q=Mac%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Qs6gLegQIFhAB
+              - generic [ref=e101]: 短视频
+          - listitem [ref=e102]:
+            - link "新闻" [ref=e103] [cursor=pointer]:
+              - /url: /search?sca_esv=00e10f0057297768&q=Mac%E8%80%B3%E6%9C%BA&tbm=nws&source=lnms&fbs=ADc_l-Z6XGGbkKmpylZqg2J7ZOuVtSi6kM5ZjADb03gRVWnenfhJMtO4x41VfNir3SjdVdhyyyyYILncmWVWY-SA4CdevaFXj2U84euI-vNNo4UARGk8RE2yoWkRlpjtRN3ljy5bcJEPy_0NittpvVBQHS7W6jCsa_2JxpR-zcqlKS1qzhL6sb5zgdw1_qxS2MG05V0EZa8zA0OiwMLQ076_tSQTlJ7VYw&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q0pQJegQIFRAB
+              - generic [ref=e105]: 新闻
+          - listitem [ref=e106]:
+            - button "更多过滤条件" [ref=e107] [cursor=pointer]:
+              - generic "更多过滤条件" [ref=e108]:
+                - generic [ref=e109]:
+                  - generic [ref=e110]: 更多
+                  - img [ref=e112]
+        - button "工具" [ref=e115] [cursor=pointer]:
+          - generic [ref=e117]:
+            - generic [ref=e118]: 工具
+            - img [ref=e120]
+    - heading "搜索结果" [level=1] [ref=e123]
+    - main [ref=e129]:
+      - region "广告" [ref=e132]:
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - heading "赞助商产品" [level=3] [ref=e141]:
+              - generic [ref=e142]: 赞助商产品
+            - button "为什么会显示该广告？" [ref=e148] [cursor=pointer]:
+              - img [ref=e150]
+          - generic [ref=e158]:
+            - generic [ref=e159]:
+              - link "在Target的目前售价为 ，原价为 US$550":
+                - link "在Target的目前售价为 ，原价为 US$550" [ref=e160] [cursor=pointer]:
+                  - /url: https://www.target.com/p/apple-airpods-max-purple/-/A-85978616?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+              - generic [ref=e161]:
+                - generic:
+                  - generic:
+                    - generic: 特价销售
+                - link [ref=e163]:
+                  - link [ref=e164] [cursor=pointer]:
+                    - /url: https://www.target.com/p/apple-airpods-max-purple/-/A-85978616?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+                    - img [ref=e167]
+                - generic [ref=e169]:
+                  - heading "Apple AirPods Max - Purple" [level=3] [ref=e170]:
+                    - generic [ref=e171]: Apple AirPods Max - Purple
+                  - generic [ref=e172]:
+                    - generic [ref=e173]: US$449.99
+                    - generic [ref=e174]: US$550
+                  - generic "来自Target" [ref=e176]: Target
+                  - img "评分为 4.4 星（最高 5 星）， (9k+) 条用户评价" [ref=e181]:
+                    - img [ref=e182]
+                    - text: (9k+)
+            - generic [ref=e185]:
+              - link "在Target的售价仅为":
+                - link "在Target的售价仅为" [ref=e186] [cursor=pointer]:
+                  - /url: https://www.target.com/p/aaph-2020/-/A-80585773?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+              - generic [ref=e187]:
+                - link [ref=e189]:
+                  - link [ref=e190] [cursor=pointer]:
+                    - /url: https://www.target.com/p/aaph-2020/-/A-80585773?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+                    - img [ref=e193]
+                - generic [ref=e195]:
+                  - heading "Apple AirPods Max 2 - Blue" [level=3] [ref=e196]:
+                    - generic [ref=e197]: Apple AirPods Max 2 - Blue
+                  - generic [ref=e199]: US$549.99
+                  - generic "来自Target" [ref=e201]: Target
+                  - generic [ref=e205]:
+                    - img [ref=e207]
+                    - generic [ref=e209]: 免运费，4/23前送达
+            - generic [ref=e210]:
+              - link "在Target的目前售价为 ，原价为 US$250":
+                - link "在Target的目前售价为 ，原价为 US$250" [ref=e211] [cursor=pointer]:
+                  - /url: https://www.target.com/p/ap2022-true-wireless-bluetooth-headphones/-/A-85978609?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+              - generic [ref=e212]:
+                - generic:
+                  - generic:
+                    - generic: 特价销售
+                - link [ref=e214]:
+                  - link [ref=e215] [cursor=pointer]:
+                    - /url: https://www.target.com/p/ap2022-true-wireless-bluetooth-headphones/-/A-85978609?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+                    - img [ref=e218]
+                - generic [ref=e220]:
+                  - heading "Apple AirPods Pro 3 Wireless Earbuds with Active Noise Cancellation" [level=3] [ref=e221]:
+                    - generic [ref=e222]: Apple AirPods Pro 3 Wireless Earbuds with Active Noise Cancellation
+                  - generic [ref=e223]:
+                    - generic [ref=e224]: US$199.99
+                    - generic [ref=e225]: US$250
+                  - generic "来自Target" [ref=e227]: Target
+                  - img "评分为 4.7 星（最高 5 星）， (9k+) 条用户评价" [ref=e232]:
+                    - img [ref=e233]
+                    - text: (9k+)
+            - generic [ref=e236]:
+              - link "在Target的目前售价为 ，原价为 US$550":
+                - link "在Target的目前售价为 ，原价为 US$550" [ref=e237] [cursor=pointer]:
+                  - /url: https://www.target.com/p/apple-airpods-max-midnight/-/A-85978621?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+              - generic [ref=e238]:
+                - generic:
+                  - generic:
+                    - generic: 特价销售
+                - link [ref=e240]:
+                  - link [ref=e241] [cursor=pointer]:
+                    - /url: https://www.target.com/p/apple-airpods-max-midnight/-/A-85978621?TCID=OGS&AFID=google&CPNG=Electronics&adgroup=57-10
+                    - img [ref=e244]
+                - generic [ref=e246]:
+                  - heading "Apple AirPods Max - Midnight" [level=3] [ref=e247]:
+                    - generic [ref=e248]: Apple AirPods Max - Midnight
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: US$449.99
+                    - generic [ref=e251]: US$550
+                  - generic "来自Target" [ref=e253]: Target
+                  - img "评分为 4.4 星（最高 5 星）， (9k+) 条用户评价" [ref=e258]:
+                    - img [ref=e259]
+                    - text: (9k+)
+            - generic [ref=e262]:
+              - link "在Target的售价仅为":
+                - link "在Target的售价仅为" [ref=e263] [cursor=pointer]:
+                  - /url: https://www.target.com/p/apple-airpods-max-160-2-160-midnight/-/A-80585769?sid=3410S&afid=google&TCID=OGS&CPNG=Electronics&adgroup=57-10
+              - generic [ref=e264]:
+                - link "Scotts Valley" [ref=e266]:
+                  - link "Scotts Valley" [ref=e267] [cursor=pointer]:
+                    - /url: https://www.target.com/p/apple-airpods-max-160-2-160-midnight/-/A-80585769?sid=3410S&afid=google&TCID=OGS&CPNG=Electronics&adgroup=57-10
+                    - img [ref=e270]
+                    - generic [ref=e272]: Scotts Valley
+                - generic [ref=e275]:
+                  - heading "Apple AirPods Max 2 - Midnight" [level=3] [ref=e276]:
+                    - generic [ref=e277]: Apple AirPods Max 2 - Midnight
+                  - generic [ref=e279]: US$549.99
+                  - generic "来自Target" [ref=e281]: Target
+                  - img "评分为 4.4 星（最高 5 星）， (20) 条用户评价" [ref=e286]:
+                    - img [ref=e287]
+                    - text: (20)
+      - generic [ref=e293]:
+        - generic [ref=e296]:
+          - heading "网页搜索结果" [level=2] [ref=e297]
+          - generic [ref=e298]:
+            - generic [ref=e301]:
+              - link "耳机与扬声器- Mac 配件 Apple (中国大陆) https://www.apple.com.cn › mac › headphones-speakers" [ref=e303] [cursor=pointer]:
+                - /url: https://www.apple.com.cn/shop/mac/accessories/headphones-speakers
+                - heading "耳机与扬声器- Mac 配件" [level=3] [ref=e304]
+                - generic [ref=e309]:
+                  - generic [ref=e311]: Apple (中国大陆)
+                  - generic [ref=e313]: https://www.apple.com.cn › mac › headphones-speakers
+              - button "关于这条结果的详细信息" [ref=e314] [cursor=pointer]:
+                - img [ref=e317]
+            - generic [ref=e321]:
+              - emphasis [ref=e322]: Beats Studio Buds + 真无线降噪耳机
+              - text: — 象牙白. RMB 1,349. 柚子黄Beats Flex 适合全天佩戴的无线入耳式耳机，采用双.
+        - generic [ref=e323]:
+          - generic [ref=e327]:
+            - generic [ref=e330]:
+              - link "AirPods Apple (中国大陆) https://www.apple.com.cn › airpods" [ref=e332] [cursor=pointer]:
+                - /url: https://www.apple.com.cn/airpods/
+                - heading "AirPods" [level=3] [ref=e333]
+                - generic [ref=e338]:
+                  - generic [ref=e340]: Apple (中国大陆)
+                  - generic [ref=e342]: https://www.apple.com.cn › airpods
+              - button "关于这条结果的详细信息" [ref=e343] [cursor=pointer]:
+                - img [ref=e346]
+            - generic [ref=e350]:
+              - emphasis [ref=e351]: AirPods Max 2 包耳式头戴耳机
+              - text: ，紫色，配备耳垫、. AirPods Pro 3. 入耳式主动降噪，入主新声代。 RMB 1899. 进一步了解 ...
+          - generic [ref=e355]:
+            - heading "图片" [level=2] [ref=e359]
+            - generic [ref=e363]:
+              - generic [ref=e367] [cursor=pointer]:
+                - link "EarPods (3.5 毫米耳机插头) - Apple (中国大陆) Apple (中国":
+                  - /url: https://www.apple.com.cn/shop/product/mwu53fe/a
+                - button "EarPods (3.5 毫米耳机插头) - Apple (中国大陆)" [ref=e369]:
+                  - img "EarPods (3.5 毫米耳机插头) - Apple (中国大陆)" [ref=e371]
+                - generic [ref=e373]:
+                  - generic [ref=e375]: EarPods (3.5 毫米耳机插头) - Apple (中国大陆)
+                  - generic [ref=e376]:
+                    - generic [ref=e383]: Apple (中国
+                    - button "关于这条结果的详细信息" [ref=e386]:
+                      - img [ref=e389]
+              - generic [ref=e394] [cursor=pointer]:
+                - link "耳机与扬声器- Mac 配件- Apple (中国大陆) Apple (中国":
+                  - /url: https://www.apple.com.cn/shop/mac/accessories/headphones-speakers
+                - button "耳机与扬声器- Mac 配件- Apple (中国大陆)" [ref=e396]:
+                  - img "耳机与扬声器- Mac 配件- Apple (中国大陆)" [ref=e398]
+                - generic [ref=e400]:
+                  - generic [ref=e402]: 耳机与扬声器- Mac 配件- Apple (中国大陆)
+                  - generic [ref=e403]:
+                    - generic [ref=e410]: Apple (中国
+                    - button "关于这条结果的详细信息" [ref=e413]:
+                      - img [ref=e416]
+              - generic [ref=e421] [cursor=pointer]:
+                - link "让你的 Mac 同时连接两副耳机，再也不需要和别人分耳机用啦 YouTube":
+                  - /url: https://www.youtube.com/watch?v=Yr_Zllqx6JM
+                - button "让你的 Mac 同时连接两副耳机，再也不需要和别人分耳机用啦" [ref=e423]:
+                  - img "让你的 Mac 同时连接两副耳机，再也不需要和别人分耳机用啦" [ref=e425]
+                - generic [ref=e427]:
+                  - generic [ref=e429]: 让你的 Mac 同时连接两副耳机，再也不需要和别人分耳机用啦
+                  - generic [ref=e430]:
+                    - generic [ref=e437]: YouTube
+                    - button "关于这条结果的详细信息" [ref=e440]:
+                      - img [ref=e443]
+            - button "显示更多图片" [ref=e446] [cursor=pointer]:
+              - separator [ref=e447]
+              - generic [ref=e448]:
+                - generic [ref=e449]: 显示更多图片
+                - img [ref=e451]
+          - generic [ref=e456]:
+            - generic [ref=e459]:
+              - 'link "MacBook Pro 最好用的带麦克风的耳机？ : r/MacOS Reddit · r/MacOS 30+ 条评论 · 2年前" [ref=e461] [cursor=pointer]':
+                - /url: https://www.reddit.com/r/MacOS/comments/17wrata/best_headset_with_a_mic_for_macbook_pro/?tl=zh-hans
+                - 'heading "MacBook Pro 最好用的带麦克风的耳机？ : r/MacOS" [level=3] [ref=e462]'
+                - generic [ref=e467]:
+                  - generic [ref=e469]: Reddit · r/MacOS
+                  - generic [ref=e471]: 30+ 条评论 · 2年前
+              - button "关于这条结果的详细信息" [ref=e472] [cursor=pointer]:
+                - img [ref=e475]
+            - generic [ref=e479]:
+              - text: 我有两个游戏
+              - emphasis [ref=e480]: 耳机
+              - text: ，都是森海塞尔的。一个是H6 Pro，另一个是Game One。音质都超棒，很多人夸我声音清晰，尤其现在很多人用AirPods。用AirPods或者AirPods Pro ...
+            - generic [ref=e485]:
+              - link "34 个回答" [ref=e486] [cursor=pointer]:
+                - /url: https://www.reddit.com/r/MacOS/comments/17wrata/best_headset_with_a_mic_for_macbook_pro/k9jn9ia/?tl=zh-hans
+              - generic [ref=e487]: ·
+              - generic [ref=e488]: "最佳答案:"
+              - generic [ref=e489]: AirPods Pro 2.
+          - generic [ref=e493]:
+            - generic [ref=e496]:
+              - link "Beats by Dre - Wireless Headphones, Earbuds, Speakers, and ... beatsbydre.com https://www.beatsbydre.com" [ref=e498] [cursor=pointer]:
+                - /url: https://www.beatsbydre.com/
+                - heading "Beats by Dre - Wireless Headphones, Earbuds, Speakers, and ..." [level=3] [ref=e499]
+                - generic [ref=e504]:
+                  - generic [ref=e506]: beatsbydre.com
+                  - generic [ref=e508]: https://www.beatsbydre.com
+              - generic [ref=e509]:
+                - generic [ref=e510]: ·
+                - link "翻译此页" [ref=e511] [cursor=pointer]:
+                  - /url: https://www.beatsbydre.com/
+              - button "关于这条结果的详细信息" [ref=e512] [cursor=pointer]:
+                - img [ref=e515]
+            - generic [ref=e518]: Beats by Dre brings you the best in bluetooth headphones, earbuds and speakers. Explore the latest products that bring style, comfort, and iconic sound.
+          - generic [ref=e522]:
+            - generic [ref=e525]:
+              - link "将高阻抗耳机与Mac 配合使用 Apple Support https://support.apple.com › zh-cn" [ref=e527] [cursor=pointer]:
+                - /url: https://support.apple.com/zh-cn/108351
+                - heading "将高阻抗耳机与Mac 配合使用" [level=3] [ref=e528]
+                - generic [ref=e533]:
+                  - generic [ref=e535]: Apple Support
+                  - generic [ref=e537]: https://support.apple.com › zh-cn
+              - button "关于这条结果的详细信息" [ref=e538] [cursor=pointer]:
+                - img [ref=e541]
+            - generic [ref=e544]:
+              - generic [ref=e545]: 2025年3月25日 —
+              - generic [ref=e546]:
+                - emphasis [ref=e547]: 兼容Mac 电脑上的3.5 毫米耳机插孔具有直流负载检测和自适应电压输出功能
+                - text: 。Mac 可以检测所连设备的阻抗，并针对低阻抗和高阻抗耳机以及线路电平音频设备 ...
+          - generic [ref=e551]:
+            - generic [ref=e554]:
+              - link "Maxwell 2 Wireless Gaming Headset Audeze https://www.audeze.com › products › max..." [ref=e556] [cursor=pointer]:
+                - /url: https://www.audeze.com/products/maxwell-2-wireless-gaming-headset?srsltid=AfmBOorE-FjvU_ZIDBa8R0h2exzwp9TjtvEkwnoVSz_Q9BfclSVZK3r0
+                - heading "Maxwell 2 Wireless Gaming Headset" [level=3] [ref=e557]
+                - generic [ref=e562]:
+                  - generic [ref=e564]: Audeze
+                  - generic [ref=e566]: https://www.audeze.com › products › max...
+              - generic [ref=e567]:
+                - generic [ref=e568]: ·
+                - link "翻译此页" [ref=e569] [cursor=pointer]:
+                  - /url: https://www.audeze.com/products/maxwell-2-wireless-gaming-headset
+              - button "关于这条结果的详细信息" [ref=e570] [cursor=pointer]:
+                - img [ref=e573]
+            - generic [ref=e577]:
+              - emphasis [ref=e578]: Maxwell 2 plays well with all your devices
+              - text: ", offering up to 24-bit/96kHz high-resolution audio in ultra-low latency with USB-C wireless dongle and USB-C wired ..."
+            - generic [ref=e580]:
+              - generic [ref=e581]: US$329.00
+              - text: ·
+              - img "评分为 4.5 星（最高 5 星）， (357) 条用户评价" [ref=e585]:
+                - text: "4.5"
+                - img [ref=e586]
+                - text: (357)
+              - text: ·
+              - generic [ref=e589]: 免运费
+              - text: ·
+              - generic [ref=e590]: 30 天内可退货
+          - generic [ref=e595]:
+            - heading "相关问题" [level=2] [ref=e597]
+            - generic [ref=e598]:
+              - button "MAC可以连蓝牙耳机吗？" [ref=e604] [cursor=pointer]:
+                - generic [ref=e606]: MAC可以连蓝牙耳机吗？
+                - img [ref=e609]
+              - button "苹果原装耳机多少钱？" [ref=e618] [cursor=pointer]:
+                - generic [ref=e620]: 苹果原装耳机多少钱？
+                - img [ref=e623]
+              - button "MAC可以连接AirPods吗？" [ref=e632] [cursor=pointer]:
+                - generic [ref=e634]: MAC可以连接AirPods吗？
+                - img [ref=e637]
+              - button "AirPods Pro 3多少钱？" [ref=e646] [cursor=pointer]:
+                - generic [ref=e648]: AirPods Pro 3多少钱？
+                - img [ref=e651]
+          - generic [ref=e657]:
+            - generic [ref=e660]:
+              - link "忘带3.5mm耳机怎么办？Type-C耳机苹果电脑也能用 我爱音频 https://www.52audio.com › archives" [ref=e662] [cursor=pointer]:
+                - /url: https://www.52audio.com/archives/1962.html
+                - heading "忘带3.5mm耳机怎么办？Type-C耳机苹果电脑也能用" [level=3] [ref=e663]
+                - generic [ref=e665]:
+                  - img [ref=e669]
+                  - generic [ref=e671]:
+                    - generic [ref=e673]: 我爱音频
+                    - generic [ref=e675]: https://www.52audio.com › archives
+              - button "关于这条结果的详细信息" [ref=e676] [cursor=pointer]:
+                - img [ref=e679]
+            - generic [ref=e683]:
+              - text: 这台
+              - emphasis [ref=e684]: MacBook
+              - text: 两边共有4个USB Type-C接口，先用一个最普通的试试看。小编先将华为主动降噪
+              - emphasis [ref=e685]: 耳机
+              - text: 3连接到了一个没什么特殊标记的USB Type-C接口，打开音乐播放软件测试效果， ...
+          - generic [ref=e689]:
+            - generic [ref=e692]:
+              - link "Macbook怎么用有线耳机？ 知乎 https://www.zhihu.com › question" [ref=e694] [cursor=pointer]:
+                - /url: https://www.zhihu.com/question/61765143
+                - heading "Macbook怎么用有线耳机？" [level=3] [ref=e695]
+                - generic [ref=e700]:
+                  - generic [ref=e702]: 知乎
+                  - generic [ref=e704]: https://www.zhihu.com › question
+              - button "关于这条结果的详细信息" [ref=e705] [cursor=pointer]:
+                - img [ref=e708]
+            - generic [ref=e711]:
+              - generic [ref=e712]: 2017年6月28日 —
+              - generic [ref=e713]:
+                - text: 如果对
+                - emphasis [ref=e714]: 耳机
+                - text: 没有太大追求，买一个苹果原装3.5mm接口
+                - emphasis [ref=e715]: 耳机
+                - text: 就能用了，如果追求蓝牙
+                - emphasis [ref=e716]: 耳机
+                - text: ，苹果的AirPods系列也是不错的。 相关阅读：. iPad Pro/iPad Air/iPad mini ...
+            - generic [ref=e721]:
+              - link "6 个回答" [ref=e722] [cursor=pointer]:
+                - /url: https://www.zhihu.com/question/61765143/answer/2614876103
+              - generic [ref=e723]: ·
+              - generic [ref=e724]: "最佳答案:"
+              - generic [ref=e725]: MacBook用户来答，不管是MacBook Air还是MacBook Pro，在它的右侧都有一个3.5mm接口 ...
+          - generic [ref=e732]:
+            - generic [ref=e735]:
+              - link "Macbook Pro 14”什麼耳機都能推？不需要耳擴小尾巴了嗎 ... YouTube · 林于凱（YuKai） 1.8万+ 次观看 · 3年前" [ref=e737] [cursor=pointer]:
+                - /url: https://www.youtube.com/watch?v=Dq28h-Gj4E8
+                - heading "Macbook Pro 14”什麼耳機都能推？不需要耳擴小尾巴了嗎 ..." [level=3] [ref=e738]
+                - generic [ref=e743]:
+                  - generic [ref=e745]: YouTube · 林于凱（YuKai）
+                  - generic [ref=e747]: 1.8万+ 次观看 · 3年前
+              - button "关于这条结果的详细信息" [ref=e748] [cursor=pointer]:
+                - img [ref=e751]
+            - generic [ref=e753]:
+              - button "Macbook Pro 14”什麼耳機都能推？不需要耳擴小尾巴了嗎 ...，由林于凱（YuKai）上传到YouTube上. 在 Google 上播放. 13:42" [ref=e754] [cursor=pointer]:
+                - generic [ref=e756]:
+                  - img [ref=e759]
+                  - generic [ref=e762]:
+                    - generic [ref=e763]: 13:42
+                    - img [ref=e766]
+              - generic [ref=e769]: ... Macbook使用對象09:02 MacBook音質11:49 總結 ... 隨身耳擴擴大機音質比較耳機孔mac studio MacBook Air m2. 17K views · 3 ...
+            - button "在此视频中，有 5 个重要时刻" [ref=e774] [cursor=pointer]:
+              - generic [ref=e777]:
+                - generic [ref=e780]: 在此视频中，有 5 个重要时刻
+                - img [ref=e782]
+      - generic [ref=e785]:
+        - generic [ref=e790]:
+          - heading "用户还搜索了" [level=2] [ref=e792]
+          - generic [ref=e794]:
+            - generic [ref=e795]:
+              - link "Mac 有线 耳机 没 声音" [ref=e799] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=Mac+%E6%9C%89%E7%BA%BF+%E8%80%B3%E6%9C%BA+%E6%B2%A1+%E5%A3%B0%E9%9F%B3&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAgiEAE
+                - generic [ref=e800]:
+                  - generic [ref=e805]: Mac 有线 耳机 没 声音
+                  - img [ref=e809]
+              - link "苹果耳机" [ref=e814] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAg-EAE
+                - generic [ref=e815]:
+                  - generic [ref=e820]: 苹果耳机
+                  - img [ref=e824]
+              - link "苹果耳机最新款" [ref=e829] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E8%80%B3%E6%9C%BA%E6%9C%80%E6%96%B0%E6%AC%BE&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAg6EAE
+                - generic [ref=e830]:
+                  - generic [ref=e835]: 苹果耳机最新款
+                  - img [ref=e839]
+              - link "苹果有线耳机" [ref=e844] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E6%9C%89%E7%BA%BF%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAg2EAE
+                - generic [ref=e845]:
+                  - generic [ref=e850]: 苹果有线耳机
+                  - img [ref=e854]
+            - generic [ref=e856]:
+              - link "苹果耳机三代" [ref=e860] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E8%80%B3%E6%9C%BA%E4%B8%89%E4%BB%A3&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAgyEAE
+                - generic [ref=e861]:
+                  - generic [ref=e866]: 苹果耳机三代
+                  - img [ref=e870]
+              - link "苹果头戴耳机" [ref=e875] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E5%A4%B4%E6%88%B4%E8%80%B3%E6%9C%BA&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAgsEAE
+                - generic [ref=e876]:
+                  - generic [ref=e881]: 苹果头戴耳机
+                  - img [ref=e885]
+              - link "苹果耳机二代和三代的区别" [ref=e890] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E8%80%B3%E6%9C%BA%E4%BA%8C%E4%BB%A3%E5%92%8C%E4%B8%89%E4%BB%A3%E7%9A%84%E5%8C%BA%E5%88%AB&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAgoEAE
+                - generic [ref=e891]:
+                  - generic [ref=e896]: 苹果耳机二代和三代的区别
+                  - img [ref=e900]
+              - link "苹果耳机airpods" [ref=e905] [cursor=pointer]:
+                - /url: /search?sca_esv=00e10f0057297768&q=%E8%8B%B9%E6%9E%9C%E8%80%B3%E6%9C%BAairpods&sa=X&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q1QJ6BAgmEAE
+                - generic [ref=e906]:
+                  - generic [ref=e911]: 苹果耳机airpods
+                  - img [ref=e915]
+        - navigation [ref=e917]:
+          - heading "网页导航" [level=1] [ref=e918]
+          - text: "1"
+          - link "Page 2" [ref=e921] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=10&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAE
+            - text: "2"
+          - link "Page 3" [ref=e923] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=20&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAG
+            - text: "3"
+          - link "Page 4" [ref=e925] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=30&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAI
+            - text: "4"
+          - link "Page 5" [ref=e927] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=40&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAK
+            - text: "5"
+          - link "Page 6" [ref=e929] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=50&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAM
+            - text: "6"
+          - link "Page 7" [ref=e931] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=60&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAO
+            - text: "7"
+          - link "Page 8" [ref=e933] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=70&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAQ
+            - text: "8"
+          - link "Page 9" [ref=e935] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=80&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAS
+            - text: "9"
+          - link "Page 10" [ref=e937] [cursor=pointer]:
+            - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=90&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8tMDegQIQBAU
+            - text: "10"
+          - heading "下一页" [level=2] [ref=e939]:
+            - link "下一页" [ref=e940] [cursor=pointer]:
+              - /url: /search?q=Mac%E8%80%B3%E6%9C%BA&sca_esv=00e10f0057297768&ei=WwXhacrlHuvu0PEPtaDs6QE&start=10&sa=N&sstk=Af77f_dF-VTvWdodaaPjGTnKu3GCjqeWVc4N0lgGYWlE9gvkcbd29sEJJ9Ok-02jvR0te5OgfsIIxaTrLiSWOM7jk7xJ0BfbApkJ8A&ved=2ahUKEwiK__3f3PKTAxVrNzQIHTUQOx0Q8NMDegQIQBAW
+              - generic [ref=e942]: 下一页
+      - navigation
+    - contentinfo [ref=e943]:
+      - heading "页脚链接" [level=1] [ref=e944]
+      - generic [ref=e948]:
+        - generic [ref=e952]:
+          - button "旧金山-奥克兰-圣何塞, 加州 加利福尼亚 - 是根据您的 IP 地址推断出来的" [ref=e954] [cursor=pointer]:
+            - generic [ref=e955]: 旧金山-奥克兰-圣何塞, 加州 加利福尼亚
+            - generic [ref=e957]:
+              - text: "-"
+              - generic [ref=e958]: 是根据您的 IP 地址推断出来的
+          - text: "-"
+          - button "更新位置信息" [ref=e960] [cursor=pointer]: 更新位置信息
+        - generic [ref=e963]:
+          - link "帮助" [ref=e964] [cursor=pointer]:
+            - /url: https://support.google.com/websearch/?p=ws_results_help&hl=zh-CN&fg=1
+          - link "发送反馈" [ref=e965] [cursor=pointer]:
+            - /url: "#"
+          - link "隐私权" [ref=e966] [cursor=pointer]:
+            - /url: https://policies.google.com/privacy?hl=zh-CN&fg=1
+          - link "条款" [ref=e967] [cursor=pointer]:
+            - /url: https://policies.google.com/terms?hl=zh-CN&fg=1
