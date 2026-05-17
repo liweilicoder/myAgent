@@ -28,21 +28,26 @@ class HelloAgentsLLM:
 
         self.client = OpenAI(api_key=apiKey, base_url=baseUrl, timeout=timeout)
 
-    def think(self, messages: List[Dict[str, str]], temperature: float = 0) -> str:
+    def think(self, messages: List[Dict[str, str]], temperature: float = 0, thinking: bool = False) -> str:
         """
         调用大语言模型进行思考，并返回其响应。
         """
         log.info(f"🧠 正在调用 {self.model} 模型...")
         log.debug(f"🦐模型输入:")
         for i, m in enumerate(messages):
-            log.debug(f"  [{i}] role={m['role']}, content={m['content']}...",True)
+            log.debug(f"role={m['role']}, content={m['content']}...",True)
 
         try:
+            extra_body = {}
+            if not thinking:
+                extra_body["reasoning_split"] = True
+
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
                 stream=True,
+                extra_body=extra_body if extra_body else None,
             )
 
             # 处理流式响应
