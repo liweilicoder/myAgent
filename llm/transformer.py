@@ -262,7 +262,7 @@ class EncoderLayer(nn.Module):
     2. 位置前馈网络（Feed-Forward）
 
     每个子层周围有残差连接和层归一化：
-    output = LayerNorm(x + Sublayer(x))
+    btc = LayerNorm(x + Sublayer(x))
 
     参数:
         d_model: 隐藏维度
