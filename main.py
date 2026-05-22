@@ -1,5 +1,5 @@
-import agent.simple_agent.agent_loop as agent
-import agent.logger as log
+import simple_agent.simple_agent.agent_loop as agent
+import simple_agent.logger as log
 
 def main():
     log.info("启动旅行助手 Agent")

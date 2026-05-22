@@ -1,7 +1,7 @@
 import os
 from tavily import TavilyClient
 from dotenv import load_dotenv
-import agent.logger as log
+import simple_agent.logger as log
 
 load_dotenv('/Users/jesse/PythonProjects/myAgent/.env', override=True)
 
