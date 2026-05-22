@@ -1,10 +1,10 @@
 import re
 import os
 from dotenv import load_dotenv
-from agent.llm.llm import OpenAIClient
-from agent.simple_agent.prompt import AGENT_SYSTEM_PROMPT
-from agent.simple_agent.available_tools import available_tools
-import agent.logger as log
+from simple_agent.llm.llm import OpenAIClient
+from simple_agent.simple_agent.prompt import AGENT_SYSTEM_PROMPT
+from simple_agent.simple_agent.available_tools import available_tools
+import simple_agent.logger as log
 
 load_dotenv('/Users/jesse/PythonProjects/myAgent/.env', override=True)
 

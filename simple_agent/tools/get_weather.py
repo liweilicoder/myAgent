@@ -1,5 +1,5 @@
 import requests
-import agent.logger as log
+import simple_agent.logger as log
 
 def get_weather(city: str) -> str:
     """

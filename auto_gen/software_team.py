@@ -123,11 +123,8 @@ def create_user_proxy():
     )
 
 
-async def run_software_development_team(task, team_biz: str = "default"):
+async def run_software_development_team(task):
     """运行软件开发团队协作"""
-    from auto_gen.tools.config import set_team_biz
-
-    set_team_biz(team_biz)
 
     print("🔧 正在初始化模型客户端...")
 

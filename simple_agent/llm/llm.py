@@ -1,5 +1,5 @@
 from openai import OpenAI
-import agent.logger as log
+import simple_agent.logger as log
 
 class OpenAIClient:
     """
