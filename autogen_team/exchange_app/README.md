@@ -1,155 +1,119 @@
-# 💱 人民币汇率实时看板
+# 💱 人民币汇率实时查看应用
 
-> 基于 Streamlit + Frankfurter API 的实时汇率监控应用
+一个基于 Streamlit 构建的简洁美观的汇率展示应用，实时显示人民币对主要外币的汇率及24小时趋势。
 
-## 📖 项目简介
-
-一款简洁美观的人民币汇率实时监控应用，支持多种主流货币的实时汇率显示、24小时涨跌分析、趋势图表展示。
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## ✨ 功能特性
 
-### 核心功能
-- ✅ **多币种支持**：USD、EUR、JPY、GBP、HKD、KRW、CNY、AUD、CAD、CHF
-- ✅ **实时汇率**：显示人民币兑各货币的实时汇率
-- ✅ **涨跌分析**：24小时涨跌幅、涨跌额、最高价、最低价
-- ✅ **趋势图表**：交互式折线图，支持缩放和悬停查看详情
-- ✅ **货币对比**：多货币涨跌幅对比图
-- ✅ **统计表格**：完整的汇率数据汇总表
-
-### 用户体验
-- 🎨 **精美卡片设计**：金融风格深蓝渐变卡片
-- 📊 **涨跌颜色标识**：绿色上涨、红色下跌
-- 🔄 **手动刷新**：一键获取最新数据
-- ⚡ **智能缓存**：5分钟自动缓存，减少API请求
-- 📱 **响应式布局**：适配桌面和移动端
-
-## 🛠️ 技术栈
-
-| 技术 | 用途 |
-|------|------|
-| Streamlit | Web 应用框架 |
-| Plotly | 交互式图表 |
-| Pandas | 数据处理 |
-| Requests | HTTP 请求 |
-| Frankfurter API | 汇率数据源 |
+- 📊 **多货币支持**: 支持美元、欧元、日元、英镑、港币
+- 📈 **实时汇率**: 自动获取最新汇率数据
+- 📉 **趋势分析**: 24小时汇率变化趋势图表
+- 🔄 **手动刷新**: 一键刷新获取最新数据
+- 🎨 **美观界面**: 卡片式布局，颜色区分涨跌
+- ⏱️ **智能缓存**: 5分钟数据缓存，减少API调用
 
 ## 🚀 快速开始
 
 ### 1. 安装依赖
 
 ```bash
-cd exchange_app
 pip install -r requirements.txt
 ```
 
-### 2. 启动应用
+### 2. 运行应用
 
 ```bash
 streamlit run app.py
 ```
 
-### 3. 访问应用
-
-打开浏览器访问 `http://localhost:8501`
+应用将在浏览器中自动打开，默认地址：`http://localhost:8501`
 
 ## 📁 项目结构
 
 ```
 exchange_app/
-├── app.py              # 主应用代码
-├── requirements.txt    # Python 依赖
-├── prd.md             # 产品需求文档
-└── README.md          # 项目说明文档
+├── app.py              # 主应用文件
+├── requirements.txt    # Python 依赖清单
+├── README.md           # 本文档
+└── prd.md              # 产品需求文档
 ```
 
-## 🎮 功能预览
+## 🖥️ 界面预览
 
-### 汇率卡片
-- 显示货币名称、符号、当前汇率
-- 24小时涨跌幅和涨跌额
-- 最高价/最低价
+### 主页面
+- 顶部显示数据更新时间
+- 中间展示5种货币的汇率卡片
+- 每个卡片包含：货币名称、当前汇率、24小时涨跌
 
-### 趋势图表
-- 交互式折线图
-- 涨跌幅柱状图
-- 支持缩停查看
+### 货币卡片
+- 左侧：货币图标、中英文名称、当前汇率数值
+- 右侧：24小时涨跌额和涨跌幅
+- 下方：24小时趋势折线图
 
-### 侧边栏设置
-- 币种选择（多选）
-- 数据范围（1-30天）
-- 自动刷新间隔
-- 显示模式切换
+## ⚙️ 配置说明
 
-## ⚙️ 配置选项
+### 更换 API
+如需更换汇率数据源，请修改 `app.py` 中的 `API_BASE_URL`：
 
-### 环境变量（可选）
-```bash
-# 设置 Streamlit 端口
-export STREAMLIT_SERVER_PORT=8501
-
-# 禁用分析
-export STREAMLIT_ANALYTICS=false
+```python
+API_BASE_URL = "https://your-api-url.com/v4/latest/CNY"
 ```
-
-### 启动参数
-```bash
-streamlit run app.py --server.port 8501 --server.headless true
-```
-
-## 📡 API 数据源
-
-本应用使用 [Frankfurter API](https://www.frankfurter.app/) 获取汇率数据，该 API 提供：
-- 实时汇率
-- 历史汇率
-- 欧洲央行数据源
-
-## 🔧 常见问题
-
-### Q: 数据不更新怎么办？
-A: 点击"刷新数据"按钮或清除缓存后重新加载
-
-### Q: API 请求失败？
-A: 检查网络连接，Frankfurter API 可能暂时不可用
-
-### Q: 如何添加新货币？
-A: 在 `SUPPORTED_CURRENCIES` 字典中添加新条目
-
-## 🔐 安全说明
-
-本应用注重代码安全：
-- **XSS 防护**：所有用户可见的文本均经过 HTML 转义
-- **输入验证**：API 响应数据经过严格验证
-- **超时保护**：请求超时时间设置为 15 秒
-- **错误处理**：统一异常捕获，避免应用崩溃
-
-## 🧪 开发指南
 
 ### 添加新货币
+在 `SUPPORTED_CURRENCIES` 字典中添加：
+
 ```python
-# 在 SUPPORTED_CURRENCIES 字典中添加
-"CAD": {"name": "加元", "symbol": "C$", "flag": "🇨🇦", "decimals": 4},
+"CNY": {"name": "人民币", "symbol": "¥", "flag": "🇨🇳"},
 ```
 
-### 修改缓存时间
-```python
-CACHE_TTL = 300  # 默认 5 分钟，可在配置区修改
+## ⚠️ 注意事项
+
+1. **免费API限制**: 当前使用的免费API有请求频率限制
+2. **历史数据**: 趋势图数据为模拟数据，实际项目中应使用提供历史数据的API
+3. **免责声明**: 汇率数据仅供参考，不构成投资建议
+
+## 🔧 故障排除
+
+### 问题：应用无法启动
+```bash
+# 检查Python版本
+python --version
+
+# 重新安装依赖
+pip uninstall -y streamlit requests plotly
+pip install -r requirements.txt
 ```
 
-### 自定义样式
-```python
-# 修改 get_custom_css() 函数中的 CSS 样式
-```
+### 问题：数据加载失败
+- 检查网络连接
+- API可能暂时不可用，等待后重试
+- 查看终端中的错误日志
 
-## 📝 许可证
+### 问题：界面显示异常
+- 使用 Chrome、Firefox 或 Edge 浏览器
+- 清除浏览器缓存
+- 尝试强制刷新页面 (Ctrl+F5 / Cmd+Shift+R)
 
-本项目仅供学习和参考使用，数据仅供参考，不构成投资建议。
+## 📝 开发说明
 
-## 🙏 致谢
+### 技术栈
+- **Web框架**: Streamlit
+- **数据可视化**: Plotly
+- **HTTP请求**: Requests
+- **数据源**: Exchange Rate API
 
-- [Streamlit](https://streamlit.io/) - 极棒的 Web 应用框架
-- [Frankfurter](https://www.frankfurter.app/) - 开源汇率 API
-- [Plotly](https://plotly.com/) - 交互式可视化库
+### 生产部署建议
+1. 使用 Streamlit Cloud 或 Heroku 部署
+2. 配置环境变量存储敏感信息
+3. 考虑使用付费API获得更稳定的数据源
+
+## 📄 许可证
+
+本项目采用 MIT 许可证，详情请查看 [LICENSE](LICENSE) 文件。
 
 ---
 
-**⚠️ 免责声明**：本应用提供的汇率数据仅供参考，不构成任何金融建议。实际交易请以银行或正规金融机构公布的汇率为准。
+*如有问题或建议，请提交 Issue 或 Pull Request*
