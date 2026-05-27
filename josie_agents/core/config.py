@@ -1,0 +1,36 @@
+"""配置管理"""
+import os
+from typing import Optional, Dict, Any
+from pydantic import BaseModel
+
+class Config(BaseModel):
+    """配置类"""
+
+    # LLM配置
+    default_model: str = "MiniMax-M2.7"
+    default_provider: str = "minimax"
+    temperature: float = 0.7
+    max_tokens: Optional[int] = None
+
+    # 系统配置
+    debug: bool = False
+    log_level: str = "INFO"
+
+    # 其他配置
+    max_history_length: int = 100
+
+    # 类方法：不需要创建实例，直接用 Config.from_env() 调用
+    # cls 就是 当前这个类本身，专门用在 classmethod 类方法
+    @classmethod
+    def from_env(cls) -> "Config":
+        """从环境变量中创建配置"""
+        return cls(
+            debug=os.getenv("DEBUG", "false").lower() == "true",
+            log_level=os.getenv("LOG_LEVEL", "INFO"),
+            temperature=float(os.getenv("TEMPERATURE", "0.7")),
+            max_tokens=int(os.getenv("MAX_TOKENS")) if os.getenv("MAX_TOKENS") else None,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转为字典"""
+        return self.dict()
