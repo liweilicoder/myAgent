@@ -15,19 +15,19 @@ class BaseLLM:
     它用于调用任何兼容OpenAI接口的服务，并默认使用流式响应。
     """
 
-    def __init__(self, model: str = None, apiKey: str = None, baseUrl: str = None, timeout: int = None):
+    def __init__(self, model: str = None, api_key: str = None, base_url: str = None, timeout: int = None):
         """
         初始化客户端。优先使用传入参数，如果未提供，则从环境变量加载。
         """
         self.model = model or os.getenv("LLM_MODEL_ID")
-        apiKey = apiKey or os.getenv("LLM_API_KEY")
-        baseUrl = baseUrl or os.getenv("LLM_BASE_URL")
+        api_key = api_key or os.getenv("LLM_API_KEY")
+        base_url = base_url or os.getenv("LLM_BASE_URL")
         timeout = timeout or int(os.getenv("LLM_TIMEOUT", 60))
 
-        if not all([self.model, apiKey, baseUrl]):
+        if not all([self.model, api_key, base_url]):
             raise ValueError("模型ID、API密钥和服务地址必须被提供或在.env文件中定义。")
 
-        self._client = OpenAI(api_key=apiKey, base_url=baseUrl, timeout=timeout)
+        self.client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
 
     def think(self, messages: List[Dict[str, str]], temperature: float = 0) -> str:
         """
@@ -39,7 +39,7 @@ class BaseLLM:
             log.debug(f"role={m['role']}, content={m['content']}...",True)
 
         try:
-            response = self._client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
