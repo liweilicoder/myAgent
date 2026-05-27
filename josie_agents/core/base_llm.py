@@ -27,7 +27,7 @@ class BaseLLM:
         if not all([self.model, apiKey, baseUrl]):
             raise ValueError("模型ID、API密钥和服务地址必须被提供或在.env文件中定义。")
 
-        self.client = OpenAI(api_key=apiKey, base_url=baseUrl, timeout=timeout)
+        self._client = OpenAI(api_key=apiKey, base_url=baseUrl, timeout=timeout)
 
     def think(self, messages: List[Dict[str, str]], temperature: float = 0) -> str:
         """
@@ -38,9 +38,8 @@ class BaseLLM:
         for i, m in enumerate(messages):
             log.debug(f"role={m['role']}, content={m['content']}...",True)
 
-
         try:
-            response = self.client.chat.completions.create(
+            response = self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
@@ -54,7 +53,7 @@ class BaseLLM:
                 content = chunk.choices[0].delta.content or ""
                 log.stream(content)
                 collected_content.append(content)
-            print()  # 在流式输出结束后换行
+            log.line_break()
             return "".join(collected_content)
 
         except Exception as e:
