@@ -49,5 +49,8 @@ def stream(msg: str):
     """流式输出，不换行，立即显示"""
     print(f"{GRAY}{msg}{RESET}", end="", flush=True)
 
+def line_break():
+    print()
+
 def separator():
     print("=" * 50)

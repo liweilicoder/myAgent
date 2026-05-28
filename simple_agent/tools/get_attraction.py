@@ -3,7 +3,7 @@ from tavily import TavilyClient
 from dotenv import load_dotenv
 import simple_agent.logger as log
 
-load_dotenv('/Users/jesse/PythonProjects/myAgent/.env', override=True)
+load_dotenv()
 
 def get_attraction(city: str, weather: str) -> str:
     """

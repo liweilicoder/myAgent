@@ -6,7 +6,7 @@ from simple_agent.simple_agent.prompt import AGENT_SYSTEM_PROMPT
 from simple_agent.simple_agent.available_tools import available_tools
 import simple_agent.logger as log
 
-load_dotenv('/Users/jesse/PythonProjects/myAgent/.env', override=True)
+load_dotenv()
 
 API_KEY = os.getenv('MINIMAX_API_KEY')
 BASE_URL = os.getenv('MINIMAX_BASE_URL')

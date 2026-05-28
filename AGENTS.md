@@ -172,11 +172,10 @@ streamlit run autogen_team/exchange_app/app.py
 
 这些是当前代码的真实限制。涉及相应模块时，优先修掉根因，不要在新逻辑上继续堆补丁。
 
-1. `simple_agent/simple_agent/agent_loop.py` 和 `simple_agent/tools/get_attraction.py` 将 `.env` 路径硬编码为另一台机器上的 `/Users/jesse/PythonProjects/myAgent/.env`；默认入口在本仓库中不能可靠读取本地配置。
-2. `simple_agent` 的工具 Action 解析直接对正则匹配结果调用 `.group()`；畸形模型输出可能引发异常，而不是转化为 Observation。
-3. 多个入口会发出真实外部 API 请求并调用收费或受配额约束的 LLM/搜索服务；测试时不要误当成纯单元测试。
-4. `autogen_team` 文件工具依赖全局 `WORK_DIR` 且会覆盖同名产物文件；执行生成流程前必须确认输出目录，避免破坏人工修改的应用。
-5. `auto_gen/output/` 与 `autogen_team/exchange_app/` 中的汇率/趋势展示包含演示或模拟数据语义，不能默认视为金融级实时数据。
+1. `simple_agent` 的工具 Action 解析直接对正则匹配结果调用 `.group()`；畸形模型输出可能引发异常，而不是转化为 Observation。
+2. 多个入口会发出真实外部 API 请求并调用收费或受配额约束的 LLM/搜索服务；测试时不要误当成纯单元测试。
+3. `autogen_team` 文件工具依赖全局 `WORK_DIR` 且会覆盖同名产物文件；执行生成流程前必须确认输出目录，避免破坏人工修改的应用。
+4. `auto_gen/output/` 与 `autogen_team/exchange_app/` 中的汇率/趋势展示包含演示或模拟数据语义，不能默认视为金融级实时数据。
 
 ## 修改原则
 
