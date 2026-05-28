@@ -1,12 +1,13 @@
-from typing import Optional, Iterator
 import re
+
+from typing import Optional, Iterator
+import josie_agents.utils.log as log
 
 from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.core.base_agent import BaseAgent
-
 from josie_agents.core.config import Config
 from josie_agents.core.message import Message
-import josie_agents.utils.log as log
+
 
 class JosieSimpleAgent(BaseAgent):
     """
@@ -16,7 +17,7 @@ class JosieSimpleAgent(BaseAgent):
 
     def __init__(
         self,
-        name:str,
+        name: str,
         llm: JosieLLM,
         system_prompt: Optional[str] = None,
         config: Optional[Config] = None,
@@ -50,7 +51,7 @@ class JosieSimpleAgent(BaseAgent):
 
         # 如果没有启用工具调用，使用简单对话逻辑
         if not self.enable_tool_calling:
-            response =self.llm.think(messages,**kwargs)
+            response =self.llm.invoke(messages,**kwargs)
             self.add_message(Message(input_text, "user"))
             self.add_message(Message(response, "assistant"))
             log.success(f"✅ {self.name} 响应完成")
@@ -91,7 +92,7 @@ class JosieSimpleAgent(BaseAgent):
 
         while current_iteration < max_tool_iterations:
             # 调用LLM
-            response = self.llm.think(messages,**kwargs)
+            response = self.llm.invoke(messages,**kwargs)
 
             # 检查是否有工具调用
             tool_calls = self._parse_tool_calls(response)
@@ -124,7 +125,7 @@ class JosieSimpleAgent(BaseAgent):
 
         # 如果超过最大迭代次数，获取最后一次回答
         if current_iteration >= max_tool_iterations and not final_response:
-            final_response = self.llm.think(messages, **kwargs)
+            final_response = self.llm.invoke(messages, **kwargs)
 
         # 保存到历史记录
         self.add_message(Message(input_text, "user"))
@@ -218,4 +219,40 @@ class JosieSimpleAgent(BaseAgent):
 
         # 流式调用LLM
         full_response = ""
-        log.stream("📝 实时响应: ")
+        log.info("📝 实时响应: ")
+        for chunk in self.llm.think(messages, **kwargs):
+            full_response += chunk
+            yield chunk
+
+        log.line_break()
+
+        # 保存完整对话到历史记录
+        self.add_message(Message(input_text, "user"))
+        self.add_message(Message(full_response, "assistant"))
+        log.success(f"✅ {self.name} 流式响应完成")
+
+    def add_tool(self, tool) -> None:
+        """添加工具到Agent（便利方法）"""
+        if not self.tool_registry:
+            self.tool_registry = ToolRegistry()
+            self.enable_tool_calling = True
+
+        self.tool_registry.register_tool(tool)
+        log.success(f"🔧 工具 '{tool.name}' 已添加")
+
+    def has_tool(self) -> bool:
+        """检查是否有可用工具"""
+        return self.enable_tool_calling and self.tool_registry is not None
+
+    def remove_tool(self, tool_name: str) -> bool:
+        """移除工具（便利方法）"""
+        if self.tool_registry:
+            self.tool_registry.unregister(tool_name)
+            return True
+        return False
+
+    def list_tools(self) -> list:
+        """列出所有可用工具"""
+        if self.tool_registry:
+            return self.tool_registry.list_tools()
+        return []
