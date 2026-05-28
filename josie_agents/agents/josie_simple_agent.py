@@ -4,7 +4,7 @@ from typing import Optional, Iterator
 import josie_agents.utils.log as log
 
 from josie_agents.core.josie_llm import JosieLLM
-from josie_agents.core.base_agent import BaseAgent
+from josie_agents.agents.base_agent import BaseAgent
 from josie_agents.core.config import Config
 from josie_agents.core.message import Message
 

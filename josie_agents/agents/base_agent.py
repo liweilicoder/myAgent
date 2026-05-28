@@ -1,9 +1,9 @@
 """Agent基类"""
 from abc import ABC, abstractmethod
 from typing import Optional, Any
-from message import Message
-from josie_llm import JosieLLM
-from config import Config
+from josie_agents.core.message import Message
+from josie_agents.core.josie_llm import JosieLLM
+from josie_agents.core.config import Config
 
 class BaseAgent(ABC):
     """Agent 基类"""
