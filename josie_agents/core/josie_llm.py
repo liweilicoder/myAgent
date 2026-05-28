@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
         exampleMessages = [
             {"role": "system", "content": "You are a helpful assistant that writes Python code."},
-            {"role": "user", "content": "写一个归并排序算法"}   ]
+            {"role": "user", "content": "写一个两数之和程序"}   ]
 
         log.info("--- 调用LLM ---")
         responseText = llmClient.think(exampleMessages)

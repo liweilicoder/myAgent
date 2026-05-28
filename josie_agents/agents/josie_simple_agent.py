@@ -219,4 +219,3 @@ class JosieSimpleAgent(BaseAgent):
         # 流式调用LLM
         full_response = ""
         log.stream("📝 实时响应: ")
-        for chunk in self.llm.
