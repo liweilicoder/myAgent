@@ -99,7 +99,7 @@ class JosieLLM(BaseLLM):
 # --- 客户端使用示例 ---
 if __name__ == '__main__':
     try:
-        llmClient = JosieLLM(provider="ollama")
+        llmClient = JosieLLM(provider="minimax")
 
         invokeMessages = [
             {"role": "system", "content": "You are a helpful assistant that writes Python code."},

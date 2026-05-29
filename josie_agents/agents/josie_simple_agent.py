@@ -7,6 +7,7 @@ from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.agents.base_agent import BaseAgent
 from josie_agents.core.config import Config
 from josie_agents.core.message import Message
+from josie_agents.tools.registry import ToolRegistry
 
 
 class JosieSimpleAgent(BaseAgent):
@@ -21,7 +22,7 @@ class JosieSimpleAgent(BaseAgent):
         llm: JosieLLM,
         system_prompt: Optional[str] = None,
         config: Optional[Config] = None,
-        tool_registry: Optional['ToolRegistry'] = None,
+        tool_registry: Optional[ToolRegistry] = None,
         enable_tool_calling: bool = True
     ):
         super().__init__(name, llm, system_prompt, config)
@@ -155,7 +156,7 @@ class JosieSimpleAgent(BaseAgent):
             return f"❌ 错误：未配置工具注册表"
 
         try:
-            if tool_name == 'calculator':
+            if tool_name == 'Calculator':
                 # 计算器工具直接传入表达式
                 result = self.tool_registry.execute_tool(tool_name, parameters)
             else:
@@ -256,3 +257,59 @@ class JosieSimpleAgent(BaseAgent):
         if self.tool_registry:
             return self.tool_registry.list_tools()
         return []
+
+
+def test_josie_simple_agent():
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    #创建LLM实例
+    llm = JosieLLM()
+
+    # 测试1：基础对话Agent（无工具）
+    log.delimiter("=== 测试1：基础对话 ===")
+    basic_agent = JosieSimpleAgent(
+        name="基础助手",
+        llm=llm,
+        system_prompt="你是一个友好的AI助手，请用简洁明了的方式回答问题。"
+    )
+
+    response1 = basic_agent.run("你好，请介绍一下自己")
+    log.info(f"基础对话响应: {response1}\n")
+
+    # 测试2：带工具的Agent
+    log.delimiter("=== 测试2：工具增强对话 ===")
+
+    from josie_agents.tools.builtin.calculator import Calculator
+    calculator = Calculator()
+    tool_registry = ToolRegistry()
+    tool_registry.register_tool(calculator)
+
+    enhanced_agent = JosieSimpleAgent(
+        name="增强助手",
+        llm=llm,
+        system_prompt="你是一个智能助手，可以使用工具来帮助用户。",
+        tool_registry=tool_registry,
+        enable_tool_calling=True
+    )
+
+    response2 = enhanced_agent.run("请帮我计算 15 * 8 + 32")
+    log.info(f"工具增强响应: {response2}\n")
+
+    # 测试3：流式响应
+    log.delimiter("=== 测试3：流式响应 ===")
+    for chunk in basic_agent.stream_run("请解释什么是人工智能"):
+        pass  # 内容已在stream_run中实时打印
+
+    # 测试4：动态添加工具
+    log.delimiter("=== 测试4：动态工具管理 ===")
+    log.info(f"添加工具前: {basic_agent.has_tool()}")
+    basic_agent.add_tool(Calculator())
+    log.info(f"添加工具后: {basic_agent.has_tool()}")
+
+    # 查看对话历史
+    log.info(f"\n对话历史: {len(basic_agent.get_history())} 条消息")
+
+
+if __name__ == "__main__":
+    test_josie_simple_agent()
