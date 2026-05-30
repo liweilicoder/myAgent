@@ -2,19 +2,23 @@ import os
 
 from josie_agents.tools.registry import ToolRegistry
 import josie_agents.utils.log as log
+from typing import Dict, Any, List
+from josie_agents.tools.base_tool import BaseTool, ToolParameter
 
 import tavily
 import serpapi
 
-class AdvancedSearchTool:
+class AdvancedSearchTool(BaseTool):
     """
     自定义高级搜索工具类
     展示多源整合和智能选择的设计模式
     """
 
     def __init__(self):
-        self.name = "Advanced_Search"
-        self.description = "智能搜索工具，支持多个搜索源，自动选择最佳结果"
+        super().__init__(
+            name="AdvancedSearch",
+            description="智能搜索工具，支持多个搜索源，自动选择最佳结果"
+        )
         self.search_sources = []
         self._setup_search_sources()
 
@@ -109,6 +113,18 @@ class AdvancedSearchTool:
 
         return result
 
+    def run(self, parameters: Dict[str, Any]) -> str:
+        return self.search(parameters['input'])
+
+    def get_parameters(self) -> List[ToolParameter]:
+        return [
+            ToolParameter(
+                name="input",
+                description="要搜索的信息",
+                required=True
+            )
+        ]
+
 
 def create_advanced_search_registry():
     """创建包含高级搜索工具的注册表"""
@@ -119,7 +135,7 @@ def create_advanced_search_registry():
 
     # 注册搜索工具的方法作为函数
     registry.register_function(
-        name="advanced_search",
+        name="AdvancedSearch",
         description="高级搜索工具，整合Tavily和SerpAPI多个搜索源，提供更全面的搜索结果",
         func=search_tool.search
     )
