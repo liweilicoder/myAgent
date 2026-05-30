@@ -1,7 +1,4 @@
 from typing import List, Dict, Any, Optional
-
-from jinja2.environment import create_cache
-
 from josie_agents.tools.registry import ToolRegistry
 import josie_agents.utils.log as log
 
