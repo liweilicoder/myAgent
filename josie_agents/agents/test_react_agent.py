@@ -86,6 +86,9 @@ def test_josie_react_agent():
 
     # 查看对话历史
     log.info(f"📝 对话历史记录: {len(agent.get_history())} 条消息")
+    log.info("对话历史:")
+    for history in agent.get_history():
+        log.info(f" - {history}")
 
     # 显示工具使用统计
     log.info(f"🛠️ 可用工具数量: {len(tool_registry._tools)}")

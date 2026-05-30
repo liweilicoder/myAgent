@@ -3,7 +3,7 @@ import os
 from josie_agents.tools.registry import ToolRegistry
 import josie_agents.utils.log as log
 
-from tavily import TavilyClient
+import tavily
 import serpapi
 
 class AdvancedSearchTool:
@@ -23,7 +23,7 @@ class AdvancedSearchTool:
         # 检查Tavily可用性
         if os.getenv("TAVILY_API_KEY"):
             try:
-                self.tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+                self.tavily_client = tavily.TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
                 self.search_sources.append("tavily")
                 log.success("✅ Tavily搜索源已启用")
             except ImportError:
@@ -32,6 +32,7 @@ class AdvancedSearchTool:
         # 检查SerpApi可用性
         if os.getenv("SERPAPI_API_KEY"):
             try:
+                self.serpapi_client = serpapi.Client(api_key=os.getenv("SERPAPI_API_KEY"))
                 self.search_sources.append("serpapi")
                 log.success("✅ SerpApi搜索源已启用")
             except ImportError:
@@ -99,19 +100,12 @@ class AdvancedSearchTool:
 
     def _search_with_serpapi(self, query: str) -> str:
         """使用SerpApi搜索"""
-        search = serpapi.GoogleSearch({
-            "q": query,
-            "api_key": os.getenv("SERPAPI_API_KEY"),
-            "num": 3
-        })
-
-        results = search.get_dict()
+        results = self.serpapi_client.search(q=query, engine="google", num=3)
 
         result = "🔗 Google搜索结果：\n"
-        if "organic_results" in results:
-            for i, res in enumerate(results["organic_results"][:3], 1):
-                result += f"[{i}] {res.get('title', '')}\n"
-                result += f"    {res.get('snippet', '')}\n\n"
+        for i, res in enumerate(results.get("organic_results", [])[:3], 1):
+            result += f"[{i}] {res.get('title', '')}\n"
+            result += f"    {res.get('snippet', '')}\n\n"
 
         return result
 
