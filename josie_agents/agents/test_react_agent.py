@@ -118,7 +118,20 @@ def test_custom_prompt():
 
 请按以下格式回应：
 Thought: [你的思考]
-Action: [tool_name[input] 或 Finish[答案]]
+Action: tool_name[input] 或 Finish[答案]
+
+示例:
+    Thought: 用户问的是苹果手机最新型号，这是一个关于时事的问题，我需要搜索来获取最新信息。
+    Action: Search[苹果手机最新型号是什么？]
+
+    (工具返回观察后，继续推理...)
+    Thought: 通过搜索我得知苹果最新型号是 iPhone 16 Pro Max，我需要获取更多关于其卖点的信息。
+    Action: Search[iPhone 16 Pro Max 卖点]
+
+    (收集到足够信息后...)
+    Thought: 根据搜索结果，我已经获得了苹果最新型号及其卖点的完整信息，可以给出最终答案了。
+    Action: Finish[苹果最新型号是 iPhone 16 Pro Max，卖点包括 A18 Pro 芯片、钛金属边框、5倍光学变焦等。]
+
 
 问题：{question}
 历史：{history}

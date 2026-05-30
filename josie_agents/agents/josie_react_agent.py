@@ -31,10 +31,6 @@ Action: 你决定采取的行动，必须是以下格式之一：
     Thought: 根据搜索结果，我已经获得了苹果最新型号及其卖点的完整信息，可以给出最终答案了。
     Action: Finish[苹果最新型号是 iPhone 16 Pro Max，卖点包括 A18 Pro 芯片、钛金属边框、5倍光学变焦等。]
 
-注意点：
-【重要！】输出有且仅有一个 "Thought: XXX" 和 "Action: XXXX", 不要在输出的思考阶段输出这两个字符串
-
-
 ## 当前任务
 **Question:** {question}
 
@@ -136,6 +132,9 @@ class JosieReactAgent(BaseAgent):
         return final_answer
 
     def _parse_output(self, text: str):
+        # 跨行正则移除所有 <think ...>...</think> 块；若出现未闭合 <think>，从 <think> 起丢弃到文本末尾，防止继续误解析
+        text = re.sub(r"<think\b[^>]*>.*?</think\s*>", "", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<think\b[^>]*>.*\Z", "", text, flags=re.DOTALL | re.IGNORECASE)
         # Thought: 匹配到 Action: 或文本末尾
         thought_match = re.search(r"Thought:\s*(.*?)(?=\nAction:|$)", text, re.DOTALL)
         # Action: 匹配到文本末尾
