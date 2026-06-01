@@ -32,14 +32,7 @@ def test_josie_react_agent():
 
     # 注册搜索工具（如果可用）
     try:
-
-        search_tool = AdvancedSearchTool()
-
-        tool_registry.register_function(
-            name="advanced_search",
-            description="高级搜索工具，整合Tavily和SerpAPI多个搜索源，提供更全面的搜索结果",
-            func=search_tool.search
-        )
+        tool_registry.register_tool(AdvancedSearchTool())
         log.success("✅ 搜索工具注册成功")
     except ImportError:
         log.warn("⚠️ 搜索工具未找到，跳过注册")
