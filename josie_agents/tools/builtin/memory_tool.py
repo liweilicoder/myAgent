@@ -146,7 +146,6 @@ class MemoryTool(BaseTool):
             # 添加会话信息到元数据
             metadata.update({
                 "session_id": self.current_session_id,
-                "timestamp": datetime.now().isoformat()
             })
 
             memory_id = self.memory_manager.add_memory(

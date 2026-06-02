@@ -87,7 +87,7 @@ class MemoryManager:
             content=content,
             memory_type=memory_type,
             user_id=self.user_id,
-            timestamp=datetime.now(),
+            timestamp=metadata.get('timestamp') or datetime.now(),
             importance=importance,
             metadata=metadata or {}
         )
