@@ -49,6 +49,9 @@ def stream(msg: str):
     """流式输出，不换行，立即显示"""
     print(f"{GRAY}{msg}{RESET}", end="", flush=True)
 
+def delimiter(msg: str, color_msg: bool = True):
+    print(_colored("Delimiter", PURPLE, msg, color_msg))
+
 def line_break():
     print()
 

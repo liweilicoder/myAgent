@@ -99,17 +99,21 @@ class JosieLLM(BaseLLM):
 # --- 客户端使用示例 ---
 if __name__ == '__main__':
     try:
-        llmClient = JosieLLM(provider="ollama")
+        llmClient = JosieLLM(provider="minimax")
 
-        exampleMessages = [
+        invokeMessages = [
             {"role": "system", "content": "You are a helpful assistant that writes Python code."},
-            {"role": "user", "content": "写一个两数之和程序"}   ]
+            {"role": "user", "content": "写一个桶排序算法"}
+        ]
+        responseText = llmClient.invoke(invokeMessages)
 
-        log.info("--- 调用LLM ---")
-        responseText = llmClient.think(exampleMessages)
-        if responseText:
-            log.success("--- 完整模型响应 ---")
-            log.info(responseText)
+        thinkMessages = [
+            {"role": "system", "content": "You are a helpful assistant that writes Python code."},
+            {"role": "user", "content": "写一个二分排序算法"}
+        ]
+
+        for content in llmClient.think(thinkMessages):
+            pass
 
     except ValueError as e:
         log.error(e)
