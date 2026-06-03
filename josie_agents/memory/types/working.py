@@ -99,8 +99,6 @@ class WorkingMemory(BaseMemory):
             for i, memory in enumerate(filtered_memories):
                 vector_scores[memory.id] = similarities[i]
 
-            log.info(f"📄 Vector scores: {vector_scores}")
-
         except Exception as e:
             # 如果向量检索失败，回退到关键词匹配
             vector_scores = {}
@@ -141,7 +139,10 @@ class WorkingMemory(BaseMemory):
             # 重要性权重
             importance_weight = 0.8 + (memory.importance * 0.4)
             final_score = base_relevance * importance_weight
-            log.debug(f"📝 Memory{memory} score: {final_score}")
+            log.info(f"""🧮 Memory{memory}
+            \t (1) final_score({final_score:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+            \t (2) importance_weight({importance_weight:.2f})=0.8 + memory.importance({memory.importance:.2f})*0.4
+            \t (3) base_relevance({base_relevance:.2f}) = [vector_score({vector_score:.2f})*0.7 + keyword_score({keyword_score:.2f})*0.3] * time_decay({time_decay:.2f})""")
 
             if final_score > 0:
                 scored_memories.append((final_score, memory))
@@ -338,10 +339,10 @@ class WorkingMemory(BaseMemory):
     def _calculate_time_decay(self, timestamp: datetime) -> float:
         """计算时间衰减因子"""
         time_diff = datetime.now() - timestamp
-        hours_passed = time_diff.total_seconds() / 3600
+        passed_30min_cnt = time_diff.total_seconds() / 1800
 
         # 指数衰减（工作记忆衰减更快）
-        decay_factor = self.config.decay_factor ** (hours_passed * 1)  # 每6小时衰减
+        decay_factor = self.config.decay_factor ** passed_30min_cnt  # 每30min衰减
         return max(0.1, decay_factor)  # 最小保持10%的权重
 
     def _enforce_capacity_limits(self):
@@ -366,6 +367,7 @@ class WorkingMemory(BaseMemory):
             if m.timestamp >= cutoff_time:
                 kept.append(m)
             else:
+                log.info(f"⛰️ Expired Memory: {m} has been removed, cutoff time: {cutoff_time}")
                 removed_token_sum += len(m.content.split())
         if len(kept) == len(self.memories):
             return

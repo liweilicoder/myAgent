@@ -133,10 +133,10 @@ def test_memory_tool():
     # 四条记忆分布在 0-110 分钟前，确保全部存活且衰减差异可见
     now = datetime.now()
     time_test_memories = [
-        ("最新的重要信息 - 刚刚学习的概念（5分钟前）",  0.7, now - timedelta(minutes=5)),
-        ("较新的信息 - 半小时前学习的内容（30分钟前）", 0.7, now - timedelta(minutes=30)),
-        ("较旧的信息 - 一小时前学习的内容（70分钟前）", 0.7, now - timedelta(minutes=70)),
-        ("最旧的信息 - 接近过期的内容（110分钟前）",    0.7, now - timedelta(minutes=110)),
+        ("最新的重要信息 - 刚刚学习的物理知识",  0.7, now - timedelta(minutes=5)),
+        ("较新的信息 - 一小时前学习的英语单词", 0.7, now - timedelta(hours=1)),
+        ("较旧的信息 - 半天前学习的文言文", 0.7, now - timedelta(hours=12)),
+        ("最旧的信息 - 一天前学习的数学公式",    0.7, now - timedelta(days=1)),
     ]
 
     log.info(f"📝 添加不同时期的记忆...")
@@ -153,7 +153,7 @@ def test_memory_tool():
     log.info(f"🔍 时间衰减效果测试:")
     result = memory_tool.run({
         "action": "search",
-        "query": "学习的内容",
+        "query": "学习重点",
         "memory_type": "working",
         "limit": 4
     })

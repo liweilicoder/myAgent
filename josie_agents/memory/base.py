@@ -16,6 +16,9 @@ class MemoryItem(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
+    def __str__(self) -> str:
+        return f"【Content:({self.content}) Importance:({self.importance}) Timestamp:({self.timestamp}) UserId({self.user_id})】"
+
 
 class MemoryConfig(BaseModel):
     """记忆系统配置"""
