@@ -39,7 +39,7 @@ class QdrantConnectionManager:
         distance: str = "cosine",
         timeout: int = 30,
         **kwargs
-    ) -> QdrantVectorStore:
+    ) -> 'QdrantVectorStore': #前向引用语法
         """获取或创建Qdrant实例（单例模式）"""
         # 创建唯一键
         key = (url or "local", collection_name)
