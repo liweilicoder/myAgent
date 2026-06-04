@@ -136,7 +136,8 @@ class MemoryManager:
                         query=query,
                         limit=per_type_limit,
                         min_importance=min_importance,
-                        user_id=self.user_id
+                        user_id=self.user_id,
+                        time_range=time_range
                     )
                     all_results.extend(type_results)
                 except Exception as e:

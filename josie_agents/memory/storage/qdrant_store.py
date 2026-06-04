@@ -268,8 +268,7 @@ class QdrantVectorStore:
                        for i in range(len(vectors))]
 
             # 构建点数据
-            log.info(
-                f"[Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
+            log.info(f"[Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
             points = []
             for i, (vector, meta, point_id) in enumerate(zip(vectors, metadata, ids)):
                 # 确保向量是正确的维度
