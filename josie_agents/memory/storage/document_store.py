@@ -280,7 +280,7 @@ class SQLiteDocumentStore(DocumentStore):
         memory_type: Optional[str] = None,
         start_time: Optional[int] = None,
         end_time: Optional[int] = None,
-        importance_threshold: Optional[float] = None,
+        min_importance: Optional[float] = None,
         limit: int = 10
     ) -> List[Dict[str, Any]]:
         """搜索记忆"""
@@ -307,9 +307,9 @@ class SQLiteDocumentStore(DocumentStore):
             where_conditions.append("timestamp <= ?")
             params.append(end_time)
 
-        if importance_threshold:
+        if min_importance:
             where_conditions.append("importance >= ?")
-            params.append(importance_threshold)
+            params.append(min_importance)
 
         where_clause = ""
         if where_conditions:

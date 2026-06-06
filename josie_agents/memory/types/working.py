@@ -54,18 +54,15 @@ class WorkingMemory(BaseMemory):
 
     def retrieve(self, query: str, limit: int = 5, user_id: str = None, **kwargs) -> List[MemoryItem]:
         """检索工作记忆 - 混合语义向量检索和关键词匹配"""
-        # 过期清理
+        # 清理过期的记忆， 防止已经遗忘的记忆被召回
         self._expire_old_memories()
         if not self.memories:
             return []
 
-        # 过滤已遗忘的记忆
-        active_memories = [m for m in self.memories if not m.metadata.get("forgotten", False)]
-
         # 按用户ID过滤（如果提供）
-        filtered_memories = active_memories
+        filtered_memories = self.memories
         if user_id:
-            filtered_memories = [m for m in active_memories if m.user_id == user_id]
+            filtered_memories = [m for m in self.memories if m.user_id == user_id]
 
         if not filtered_memories:
             return []
