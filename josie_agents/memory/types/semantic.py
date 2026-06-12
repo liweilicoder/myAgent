@@ -105,7 +105,7 @@ class SemanticMemory(BaseMemory):
         self.semantic_memories: List[MemoryItem] = []
         self.memory_embeddings: Dict[str, np.ndarray] = {}
 
-        log.success("增强语义记忆初始化完成（使用Qdrant+Neo4j专业数据库）")
+        log.success("🎉 Semantic Memory Initialized!")
 
     def _init_embedding_model(self):
         """初始化统一嵌入模型（由 embedding_provider 管理）。"""

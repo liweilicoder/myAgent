@@ -15,8 +15,10 @@ import os
 import threading
 from typing import Union, List, Optional
 from abc import ABC, abstractmethod
-
+from sentence_transformers import SentenceTransformer
 import numpy as np
+
+from josie_agents.utils import log
 
 
 class EmbeddingModel(ABC):
@@ -34,47 +36,29 @@ class EmbeddingModel(ABC):
 
 
 class LocalTransformerEmbedding(EmbeddingModel):
-    """本地Transformer嵌入（优先 sentence-transformers，缺失回退 transformers+torch）"""
+    """本地Transformer嵌入, 使用sentence-transformers"""
 
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.model_name = model_name
-        self._backend = None  # "st" 或 "hf"
+        self._backend = None  # 目前只支持"st", 暂不支持huggingface transformer 原生模型+torch
         self._st_model = None
-        self._hf_tokenizer = None
-        self._hf_model = None
         self._dimension = None
         self._load_backend()
 
     def _load_backend(self):
-        # 优先 sentence-transformers
         try:
-            from sentence_transformers import SentenceTransformer
+
             self._st_model = SentenceTransformer(self.model_name)
             test_vec = self._st_model.encode("test_text")
             self._dimension = len(test_vec)
-            self._backend = "st"
+            self._backend = "st" # sentence_transformers
             return
         except Exception:
+            log.error("❌ 加载sentence-transformers模型失败")
             self._st_model = None
 
-        # 回退 transformers
-        try:
-            from transformers import AutoTokenizer, AutoModel
-            import torch
-            self._hf_tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self._hf_model = AutoModel.from_pretrained(self.model_name)
-            with torch.no_grad():
-                inputs = self._hf_tokenizer("test_text", return_tensors="pt", padding=True, truncation=True)
-                outputs = self._hf_model(**inputs)
-                test_embedding = outputs.last_hidden_state.mean(dim=1)
-                self._dimension = int(test_embedding.shape[1])
-            self._backend = "hf"
-            return
-        except Exception:
-            self._hf_tokenizer = None
-            self._hf_model = None
-
-        raise ImportError("未找到可用的本地嵌入后端，请安装 sentence-transformers 或 transformers+torch")
+        log.error("❌ 本地嵌入模型安装失败")
+        raise ImportError("未找到可用的本地嵌入后端，请安装 sentence-transformers")
 
     def encode(self, texts: Union[str, List[str]]):
         if isinstance(texts, str):
@@ -88,17 +72,11 @@ class LocalTransformerEmbedding(EmbeddingModel):
             vecs = self._st_model.encode(inputs)
             if hasattr(vecs, "tolist"):
                 vecs = [v for v in vecs]
-        else:
-            import torch
-            tokenized = self._hf_tokenizer(inputs, return_tensors="pt", padding=True, truncation=True, max_length=512)
-            with torch.no_grad():
-                outputs = self._hf_model(**tokenized)
-                embeddings = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
-            vecs = [v for v in embeddings]
 
-        if single:
-            return vecs[0]
-        return vecs
+            return vecs[0] if single else vecs
+        else:
+            log.error(f"❌ 不支持的本地模型{self._backend}")
+            raise NotImplementedError("不支持的本地模型")
 
     @property
     def dimension(self) -> int:

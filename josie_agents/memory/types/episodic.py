@@ -70,6 +70,7 @@ class EpisodicMemory(BaseMemory):
         qdrant_config = db_config.get_qdrant_config() or {}
         qdrant_config["vector_size"] = get_dimension()
         self.vector_store = QdrantConnectionManager.get_instance(**qdrant_config)
+        log.success("🎉 Episodic Memory Initialized!")
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加情景记忆"""

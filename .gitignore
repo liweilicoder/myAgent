@@ -210,3 +210,6 @@ __marimo__/
 *.png
 *.jpg
 .claude/
+
+# Local memory test database state
+josie_agents/tests/memory/memory_data/

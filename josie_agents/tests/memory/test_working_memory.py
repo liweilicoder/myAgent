@@ -1,17 +1,25 @@
+"""
+    WorkingMemory实现详解
+    展示工作记忆的混合检索策略和TTL机制
+
+    2026-6-12: 测试通过
+"""
 from datetime import datetime, timedelta
 
 from josie_agents.tools.builtin.memory_tool import MemoryTool
 import time
 import josie_agents.utils.log as log
 
-
-def test_memory_tool():
+def create_memory_tool():
     memory_tool = MemoryTool(
-        user_id="working_memory_demo",
+        user_id="jesse",
         memory_types=["working"]  # 只启用工作记忆
     )
 
-    """(1) 演示容量管理和TTL机制"""
+    return memory_tool
+
+
+def test_working_memory_importance_search(memory_tool):
     log.delimiter("🧠 工作记忆容量管理演示")
     log.delimiter("=" * 50)
 
@@ -49,7 +57,8 @@ def test_memory_tool():
     log.success(result)
     memory_tool.run({"action": "clear_all"})
 
-    """(2) 演示混合检索策略"""
+def test_working_memory_mix_search(memory_tool):
+    """演示混合检索策略"""
     log.delimiter("🔍 混合检索策略演示")
     log.delimiter("-" * 40)
 
@@ -119,7 +128,8 @@ def test_memory_tool():
         log.success(f"结果: {result}")
     memory_tool.run({"action": "clear_all"})
 
-    """(3) 演示时间衰减机制"""
+def test_working_memory_ttl(memory_tool):
+    """演示时间衰减机制"""
     log.delimiter("⏰ 时间衰减机制演示")
     log.delimiter("-" * 40)
 
@@ -130,13 +140,12 @@ def test_memory_tool():
     log.debug("• 平衡新旧信息重要性")
 
     # 工作记忆 TTL 默认 120 分钟，衰减公式 0.95^(hours/6)
-    # 四条记忆分布在 0-110 分钟前，确保全部存活且衰减差异可见
     now = datetime.now()
     time_test_memories = [
-        ("最新的重要信息 - 刚刚学习的物理知识",  0.7, now - timedelta(minutes=5)),
+        ("最旧的信息 - 一天前学习的数学公式", 0.7, now - timedelta(days=1)),
         ("较新的信息 - 一小时前学习的英语单词", 0.7, now - timedelta(hours=1)),
         ("较旧的信息 - 半天前学习的文言文", 0.7, now - timedelta(hours=12)),
-        ("最旧的信息 - 一天前学习的数学公式",    0.7, now - timedelta(days=1)),
+        ("最新的重要信息 - 刚刚学习的物理知识", 0.7, now - timedelta(minutes=5)),
     ]
 
     log.info(f"📝 添加不同时期的记忆...")
@@ -161,7 +170,8 @@ def test_memory_tool():
     log.success(result)
     memory_tool.run({"action": "clear_all"})
 
-    """(4)演示自动清理机制"""
+def test_working_memory_clean(memory_tool):
+    """演示自动清理机制"""
     log.delimiter("🧹 自动清理机制演示")
     log.delimiter("-" * 40)
 
@@ -201,7 +211,7 @@ def test_memory_tool():
     log.success(f"清理后状态: {stats_after}")
     memory_tool.run({"action": "clear_all"})
 
-    """(5) 演示性能特征"""
+def test_working_memory_effect(memory_tool):
     log.delimiter("⚡ 性能特征演示")
     log.delimiter("-" * 40)
 
@@ -246,4 +256,10 @@ def test_memory_tool():
 
 
 if __name__ == "__main__":
-    test_memory_tool()
+    memory_tool = create_memory_tool()
+
+    test_working_memory_importance_search(memory_tool)
+    test_working_memory_mix_search(memory_tool)
+    test_working_memory_ttl(memory_tool)
+    test_working_memory_clean(memory_tool)
+    test_working_memory_effect(memory_tool)

@@ -123,10 +123,10 @@ class PerceptualMemory(BaseMemory):
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_audio"
         self.vector_stores["audio"] = QdrantConnectionManager.get_instance(**qdrant_config)
 
-        log.success("✅ Qdrant向量数据库初始化完成")
-
         # 编码器（轻量实现；真实场景可替换为CLIP/CLAP等）
         self.encoders = self._init_encoders()
+
+        log.success("🎉 Perceptual Memory Initialized!")
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加感知记忆（SQLite权威 + Qdrant向量）"""

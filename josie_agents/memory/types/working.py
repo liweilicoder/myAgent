@@ -31,7 +31,7 @@ class WorkingMemory(BaseMemory):
 
         # 使用优先级队列管理记忆
         self.memory_heap = []  # (priority, timestamp, memory_item)
-        log.success("🎉 Working Memory Initialized")
+        log.success("🎉 Working Memory Initialized!")
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加工作记忆"""

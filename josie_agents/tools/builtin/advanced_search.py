@@ -158,7 +158,7 @@ def test_advanced_search():
 
     for i, expression in enumerate(test_cases, 1):
         log.info(f"测试 {i}: {expression}")
-        result = registry.execute_tool("advanced_search", expression)
+        result = registry.execute_tool("AdvancedSearch", expression)
         log.info(f"结果: {result}\n")
 
 
