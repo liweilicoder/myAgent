@@ -132,12 +132,12 @@ class SemanticMemory(BaseMemory):
             qdrant_config = db_config.get_qdrant_config() or {}
             qdrant_config["vector_size"] = get_dimension()
             self.vector_store = QdrantConnectionManager.get_instance(**qdrant_config)
-            log.success("✅ Qdrant向量数据库初始化完成")
+            log.success("✅ [SemanticMemory] Qdrant向量数据库初始化完成")
 
             # 初始化Neo4j图数据库
             neo4j_config = db_config.get_neo4j_config()
             self.graph_store = Neo4jGraphStore(**neo4j_config)
-            log.success("✅ Neo4j图数据库初始化完成")
+            log.success("✅ [SemanticMemory] Neo4j图数据库初始化完成")
 
             # 验证连接
             vector_health = self.vector_store.health_check()
@@ -148,7 +148,7 @@ class SemanticMemory(BaseMemory):
             if not graph_health:
                 log.warn("⚠️ Neo4j连接异常，图搜索功能可能受限")
 
-            log.info(f"🏥 数据库健康状态: Qdrant={'✅' if vector_health else '❌'}, Neo4j={'✅' if graph_health else '❌'}")
+            log.info(f"🏥 数据库健康状态: Qdrant{'✅' if vector_health else '❌'}, Neo4j{'✅' if graph_health else '❌'}")
 
         except Exception as e:
             log.error(f"❌ 数据库初始化失败: {e}")

@@ -1,6 +1,9 @@
 """
-Qdrant向量数据库存储实现
-使用专业的Qdrant向量数据库替代ChromaDB
+    Qdrant向量数据库存储实现
+    使用专业的Qdrant向量数据库替代ChromaDB
+
+    （1）Qdrant 云服务: Qdrant官网/腾讯云
+    （2）本地docker部署：docker run -p 6333:6333 qdrant/qdrant
 """
 import os
 import threading
@@ -73,7 +76,7 @@ class QdrantVectorStore:
         self,
         url: Optional[str] = None,
         api_key: Optional[str] = None,
-        collection_name: str = "hello_agents_vectors",
+        collection_name: str = "josie_agents_vectors",
         vector_size: int = 384,
         distance: str = "cosine",
         timeout: int = 30,
@@ -100,19 +103,11 @@ class QdrantVectorStore:
         self.collection_name = collection_name
         self.vector_size = vector_size
         self.timeout = timeout
+
         # HNSW/Query params via env
-        try:
-            self.hnsw_m = int(os.getenv("QDRANT_HNSW_M", "32"))
-        except Exception:
-            self.hnsw_m = 32
-        try:
-            self.hnsw_ef_construct = int(os.getenv("QDRANT_HNSW_EF_CONSTRUCT", "256"))
-        except Exception:
-            self.hnsw_ef_construct = 256
-        try:
-            self.search_ef = int(os.getenv("QDRANT_SEARCH_EF", "128"))
-        except Exception:
-            self.search_ef = 128
+        self.hnsw_m = int(os.getenv("QDRANT_HNSW_M", "32"))
+        self.hnsw_ef_construct = int(os.getenv("QDRANT_HNSW_EF_CONSTRUCT", "256"))
+        self.search_ef = int(os.getenv("QDRANT_SEARCH_EF", "128"))
         self.search_exact = os.getenv("QDRANT_SEARCH_EXACT", "0") == "1"
 
         # 距离度量映射
@@ -179,7 +174,6 @@ class QdrantVectorStore:
 
             if self.collection_name not in collection_names:
                 # 创建新集合
-                hnsw_cfg = None
                 try:
                     hnsw_cfg = models.HnswConfigDiff(m=self.hnsw_m, ef_construct=self.hnsw_ef_construct)
                 except Exception:
@@ -194,7 +188,7 @@ class QdrantVectorStore:
                 )
                 log.success(f"✅ 创建Qdrant集合: {self.collection_name}")
             else:
-                log.sucess(f"✅ 使用现有Qdrant集合: {self.collection_name}")
+                log.success(f"✅ 使用现有Qdrant集合: {self.collection_name}, 并更新HNSW配置")
                 # 尝试更新 HNSW 配置
                 try:
                     self.client.update_collection(
@@ -237,6 +231,8 @@ class QdrantVectorStore:
                 except Exception as ie:
                     # 索引已存在会报错，忽略
                     log.debug(f"索引 {field_name} 已存在或创建失败: {ie}")
+
+            log.success("✅创建payload索引完成")
         except Exception as e:
             log.debug(f"创建payload索引时出错: {e}")
 
@@ -259,7 +255,7 @@ class QdrantVectorStore:
         """
         try:
             if not vectors:
-                log.warning("⚠️ 向量列表为空")
+                log.warn("⚠️ 向量列表为空")
                 return False
 
             # 生成ID（如果未提供）

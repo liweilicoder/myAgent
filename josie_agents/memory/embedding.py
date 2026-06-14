@@ -1,7 +1,7 @@
 """统一嵌入模块（实现 + 提供器）
 
 说明（中文）：
-- 提供统一的文本嵌入接口与多实现：本地Transformer、DashScope（通义千问）、TF-IDF兜底。
+- 提供统一的文本嵌入接口与多实现：本地Sentence-Transformers、DashScope（通义千问）、TF-IDF兜底。
 - 暴露 get_text_embedder()/get_dimension()/refresh_embedder() 供各记忆类型统一使用。
 - 通过环境变量优先级：dashscope > local > tfidf。
 
@@ -17,6 +17,7 @@ from typing import Union, List, Optional
 from abc import ABC, abstractmethod
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from josie_agents.utils import log
 
@@ -47,11 +48,12 @@ class LocalTransformerEmbedding(EmbeddingModel):
 
     def _load_backend(self):
         try:
-
             self._st_model = SentenceTransformer(self.model_name)
             test_vec = self._st_model.encode("test_text")
+            log.debug(f"📝  sentence-transformers health check embedding= {test_vec}, len= {len(test_vec)}")
             self._dimension = len(test_vec)
             self._backend = "st" # sentence_transformers
+            log.success("✅ sentence-transformers模型已经加载")
             return
         except Exception:
             log.error("❌ 加载sentence-transformers模型失败")
@@ -60,6 +62,7 @@ class LocalTransformerEmbedding(EmbeddingModel):
         log.error("❌ 本地嵌入模型安装失败")
         raise ImportError("未找到可用的本地嵌入后端，请安装 sentence-transformers")
 
+    # Union 是 Python 类型提示里表达“这个值可以是多种类型之一”的东西
     def encode(self, texts: Union[str, List[str]]):
         if isinstance(texts, str):
             inputs = [texts]
@@ -72,7 +75,7 @@ class LocalTransformerEmbedding(EmbeddingModel):
             vecs = self._st_model.encode(inputs)
             if hasattr(vecs, "tolist"):
                 vecs = [v for v in vecs]
-
+            log.debug(f"🀄️sentence-transformers encode input= {inputs}, output= {vecs}")
             return vecs[0] if single else vecs
         else:
             log.error(f"❌ 不支持的本地模型{self._backend}")
@@ -95,9 +98,10 @@ class TFIDFEmbedding(EmbeddingModel):
 
     def _init_vectorizer(self):
         try:
-            from sklearn.feature_extraction.text import TfidfVectorizer
             self._vectorizer = TfidfVectorizer(max_features=self.max_features, stop_words='english')
+            log.success("✅ TF-IDF模型已加载")
         except ImportError:
+            log.error("❌ 加载TF-IDF模型失败")
             raise ImportError("请安装 scikit-learn: pip install scikit-learn")
 
     def fit(self, texts: List[str]):
@@ -115,6 +119,8 @@ class TFIDFEmbedding(EmbeddingModel):
             single = False
         tfidf_matrix = self._vectorizer.transform(texts)
         embeddings = tfidf_matrix.toarray()
+
+        log.debug(f"🀄️TF-IDF encode input= {texts}, output= {embeddings}")
         if single:
             return embeddings[0]
         return [e for e in embeddings]
@@ -143,6 +149,7 @@ class DashScopeEmbedding(EmbeddingModel):
         # 探测维度
         test = self.encode("health_check")
         self._dimension = len(test)
+        log.success("✅ DashScope 模型已加载")
 
     def _init_client(self):
         try:
@@ -163,6 +170,7 @@ class DashScopeEmbedding(EmbeddingModel):
 
         # REST 模式（OpenAI兼容）
         if self.base_url:
+            log.debug("☑️ DashScope OpenAI")
             import requests
             url = self.base_url.rstrip("/") + "/embeddings"
             headers = {
@@ -170,21 +178,24 @@ class DashScopeEmbedding(EmbeddingModel):
                 "Content-Type": "application/json",
             }
             payload = {"model": self.model_name, "input": inputs}
+            log.debug(f"🐶 DashScope http, url={url}, payload={payload}")
             resp = requests.post(url, headers=headers, json=payload, timeout=30)
             if resp.status_code >= 400:
+                log.error(f"❌ DashScope http error={resp.status_code}, msg={resp.text}")
                 raise RuntimeError(f"Embedding REST 调用失败: {resp.status_code} {resp.text}")
             data = resp.json()
             # 期望结构：{"data": [{"embedding": [...]}]}
             items = data.get("data") or []
             vecs = [np.array(item.get("embedding")) for item in items]
+            log.debug(f"🐱 DashScope http success, dimension={len(vecs[0])}")
             if single:
                 return vecs[0]
             return vecs
 
         # SDK 模式
+        log.debug("☑️ DashScope SDK")
         from dashscope import TextEmbedding
         rsp = TextEmbedding.call(model=self.model_name, input=inputs)
-        embeddings_obj = None
         if isinstance(rsp, dict):
             embeddings_obj = (rsp.get("output") or {}).get("embeddings")
         else:
@@ -192,6 +203,7 @@ class DashScopeEmbedding(EmbeddingModel):
         if not embeddings_obj:
             raise RuntimeError("DashScope 返回为空或格式不匹配")
         vecs = [np.array(item.get("embedding") or item.get("vector")) for item in embeddings_obj]
+        log.debug(f"🀄️ DashScope SDK, vecs={vecs}")
         if single:
             return vecs[0]
         return vecs
@@ -284,5 +296,3 @@ def refresh_embedder() -> EmbeddingModel:
     with _lock:
         _embedder = _build_embedder()
         return _embedder
-
-

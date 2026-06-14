@@ -1,15 +1,22 @@
+"""
+    （1）云服务
+    （2）docker本地部署：
+            # 拉社区版镜像
+            docker pull neo4j:community
+
+            # 启动（映射 7474 网页、7687 驱动）
+            docker run -d \
+                --name neo4j \
+                -p 7474:7474 -p 7687:7687 \
+                -e NEO4J_AUTH=neo4j/123456 \
+                neo4j:community
+"""
 from datetime import datetime
 from typing import Dict, Any, List
 
 import josie_agents.utils.log as log
-
-try:
-    from neo4j import GraphDatabase
-    from neo4j.exceptions import ServiceUnavailable, AuthError
-    NEO4J_AVAILABLE = True
-except ImportError:
-    NEO4J_AVAILABLE = False
-    GraphDatabase = None
+from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable, AuthError, ClientError
 
 class Neo4jGraphStore:
     """Neo4j图数据库存储实现"""
@@ -17,8 +24,8 @@ class Neo4jGraphStore:
     def __init__(
         self,
         uri: str = "bolt://localhost:7687",
-        username: str = "neo4j",
-        password: str = "josie-agents-password",
+        username: str = "jesse",
+        password: str = "jesse-password",
         database: str = "neo4j",
         max_connection_lifetime: int = 3600,
         max_connection_pool_size: int = 50,
@@ -37,8 +44,6 @@ class Neo4jGraphStore:
             max_connection_pool_size: 最大连接池大小
             connection_acquisition_timeout: 连接获取超时(秒)
         """
-        if not NEO4J_AVAILABLE:
-            raise ImportError("neo4j未安装。请运行: pip install neo4j>=5.0.0")
 
         self.uri = uri
         self.username = username
@@ -55,6 +60,7 @@ class Neo4jGraphStore:
 
         # 创建索引
         self._create_indexes()
+        log.success("✅ Neo4j实例创建成功")
 
     def _initialize_driver(self, **config):
         """初始化Neo4j驱动"""
@@ -108,6 +114,12 @@ class Neo4jGraphStore:
             for index_query in indexes:
                 try:
                     session.run(index_query)
+                except ClientError as e:
+                    if e.code == "Neo.ClientError.Database.DatabaseNotFound":
+                        log.error(f"❌ Neo4j数据库不存在: {self.database}")
+                        log.info("💡 使用本地Neo4j默认库时，请将 NEO4J_DATABASE 设置为 neo4j")
+                        raise
+                    log.debug(f"索引创建跳过 (可能已存在): {e}")
                 except Exception as e:
                     log.debug(f"索引创建跳过 (可能已存在): {e}")
 
@@ -436,6 +448,9 @@ class Neo4jGraphStore:
                 result = session.run("RETURN 1 as health")
                 record = result.single()
                 return record["health"] == 1
+        except ClientError as e:
+            log.error(f"❌ Neo4j健康检查失败: {e}")
+            return False
         except Exception as e:
             log.error(f"❌ Neo4j健康检查失败: {e}")
             return False
@@ -447,5 +462,4 @@ class Neo4jGraphStore:
                 self.driver.close()
             except:
                 pass
-
 

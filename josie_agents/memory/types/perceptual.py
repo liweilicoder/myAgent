@@ -3,13 +3,15 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Optional, List, Dict, Tuple
 import hashlib
-
+from io import BytesIO
 from josie_agents.core.database_config import get_database_config
 from josie_agents.memory.base import BaseMemory, MemoryConfig, MemoryItem
 from josie_agents.memory.embedding import get_text_embedder, get_dimension
 from josie_agents.memory.storage.document_store import SQLiteDocumentStore
 from josie_agents.memory.storage.qdrant_store import QdrantConnectionManager, QdrantVectorStore
 import josie_agents.utils.log as log
+from transformers import CLIPModel, CLIPProcessor, ClapProcessor, ClapModel
+from PIL import Image
 
 class Perception:
     """感知数据实体"""
@@ -81,24 +83,29 @@ class PerceptualMemory(BaseMemory):
         self._image_dim = None
         self._audio_dim = None
         try:
-            from transformers import CLIPModel, CLIPProcessor
+            log.debug("⬆️ 准备载入CLIP模型...")
             clip_name = os.getenv("CLIP_MODEL", "openai/clip-vit-base-patch32")
             self._clip_model = CLIPModel.from_pretrained(clip_name)
             self._clip_processor = CLIPProcessor.from_pretrained(clip_name)
             # 估计输出维度
-            self._image_dim = self._clip_model.config.projection_dim if hasattr(self._clip_model.config,
-                                                                                'projection_dim') else 512
+            self._image_dim = self._clip_model.config.projection_dim if hasattr(self._clip_model.config,'projection_dim') else 512
+            log.debug(f"⬇️ CLIP模型{clip_name} 载入成功, 维度{self._image_dim}")
+
         except Exception:
             self._clip_model = None
             self._clip_processor = None
             self._image_dim = self.vector_dim
+
+
         try:
-            from transformers import ClapProcessor, ClapModel
+            log.debug("⬆️ 准备载入CLAP模型...")
             clap_name = os.getenv("CLAP_MODEL", "laion/clap-htsat-unfused")
             self._clap_model = ClapModel.from_pretrained(clap_name)
             self._clap_processor = ClapProcessor.from_pretrained(clap_name)
             # 估计输出维度
             self._audio_dim = getattr(self._clap_model.config, 'projection_dim', None) or 512
+            log.debug(f"⬇️ CLAP模型{clap_name} 载入成功, 维度{self._audio_dim}")
+
         except Exception:
             self._clap_model = None
             self._clap_processor = None
@@ -114,14 +121,18 @@ class PerceptualMemory(BaseMemory):
 
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_text"
         self.vector_stores["text"] = QdrantConnectionManager.get_instance(**qdrant_config)
+        log.success(f"🏅 向量数据库[文本] 集合创建成功, collection_name={base_collection}_perceptual_text")
 
         # 图像集合（若CLIP不可用，维度退化为text维度）
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_image"
         self.vector_stores["image"] = QdrantConnectionManager.get_instance(**qdrant_config)
+        log.success(f"🏅 向量数据库[图像] 集合创建成功, collection_name={base_collection}_perceptual_image")
 
         # 音频集合（若CLAP不可用，维度退化为text维度）
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_audio"
         self.vector_stores["audio"] = QdrantConnectionManager.get_instance(**qdrant_config)
+        log.success(f"🏅 向量数据库[音频] 集合创建成功, collection_name={base_collection}_perceptual_audio")
+
 
         # 编码器（轻量实现；真实场景可替换为CLIP/CLAP等）
         self.encoders = self._init_encoders()
@@ -567,11 +578,10 @@ class PerceptualMemory(BaseMemory):
         if self._clip_model is None or self._clip_processor is None:
             return self._image_encoder_hash(image_data)
         try:
-            from PIL import Image
             if isinstance(image_data, str) and os.path.exists(image_data):
                 image = Image.open(image_data).convert('RGB')
             elif isinstance(image_data, (bytes, bytearray)):
-                from io import BytesIO
+
                 image = Image.open(BytesIO(bytes(image_data))).convert('RGB')
             else:
                 # 退回到哈希

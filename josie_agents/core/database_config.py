@@ -105,8 +105,8 @@ class Neo4jConfig(BaseModel):
         """从环境变量创建配置"""
         return cls(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            username=os.getenv("NEO4J_USERNAME", "neo4j"),
-            password=os.getenv("NEO4J_PASSWORD", "josie-agents-password"),
+            username=os.getenv("NEO4J_USERNAME", "jesse"),
+            password=os.getenv("NEO4J_PASSWORD", "jesse-password"),
             database=os.getenv("NEO4J_DATABASE", "neo4j"),
             max_connection_lifetime=int(os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "3600")),
             max_connection_pool_size=int(os.getenv("NEO4J_MAX_CONNECTION_POOL_SIZE", "50")),
@@ -166,7 +166,7 @@ class DatabaseConfig(BaseModel):
             log.success(f"✅ Neo4j连接验证: {'成功' if results['neo4j'] else '失败'}")
         except Exception as e:
             results["neo4j"] = False
-            log.success(f"❌ Neo4j连接验证失败: {e}")
+            log.error(f"❌ Neo4j连接验证失败: {e}")
 
         return results
 

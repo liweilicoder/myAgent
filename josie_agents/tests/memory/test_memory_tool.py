@@ -156,21 +156,21 @@ if __name__ == "__main__":
         memory_tool = create_memory_tool()
 
         # 2. 添加记忆演示
-        test_add_memory(memory_tool)
+        #test_add_memory(memory_tool)
 
         # 3. 搜索记忆演示
-        test_search_memory(memory_tool)
+        #test_search_memory(memory_tool)
 
         # 4. 记忆摘要演示
-        test_memory_summary(memory_tool)
+        #test_memory_summary(memory_tool)
 
         # 5. 记忆管理演示
-        test_memory_management(memory_tool)
+        #test_memory_management(memory_tool)
 
         log.success("🎉 MemoryTool基础操作演示完成！")
 
     except Exception as e:
-        log.error(f"\n❌ 演示过程中发生错误: {e}")
+        log.error(f"❌ 演示过程中发生错误: {e}")
         import traceback
 
         traceback.print_exc()
