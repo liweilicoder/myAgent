@@ -224,6 +224,10 @@ class SQLiteDocumentStore(DocumentStore):
         properties: Dict[str, Any] = None
     ) -> str:
         """添加记忆"""
+        log.info(
+            f"💾 [SQLiteDocumentStore] add_memory start: id={memory_id}, user={user_id}, "
+            f"type={memory_type}, importance={importance}, properties_keys={list((properties or {}).keys())}"
+        )
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -246,10 +250,12 @@ class SQLiteDocumentStore(DocumentStore):
         ))
 
         conn.commit()
+        log.success(f"✅ [SQLiteDocumentStore] add_memory done: id={memory_id}, type={memory_type}")
         return memory_id
 
     def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
         """获取单个记忆"""
+        log.debug(f"🔍 [SQLiteDocumentStore] get_memory start: id={memory_id}")
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -261,8 +267,10 @@ class SQLiteDocumentStore(DocumentStore):
 
         row = cursor.fetchone()
         if not row:
+            log.debug(f"🕳️ [SQLiteDocumentStore] get_memory miss: id={memory_id}")
             return None
 
+        log.debug(f"🎯 [SQLiteDocumentStore] get_memory hit: id={memory_id}, type={row['memory_type']}")
         return {
             "memory_id": row["id"],
             "user_id": row["user_id"],
@@ -284,6 +292,10 @@ class SQLiteDocumentStore(DocumentStore):
         limit: int = 10
     ) -> List[Dict[str, Any]]:
         """搜索记忆"""
+        log.info(
+            f"🔍 [SQLiteDocumentStore] search_memories start: user={user_id}, type={memory_type}, "
+            f"start={start_time}, end={end_time}, min_importance={min_importance}, limit={limit}"
+        )
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -336,6 +348,7 @@ class SQLiteDocumentStore(DocumentStore):
                 "created_at": row["created_at"]
             })
 
+        log.success(f"✅ [SQLiteDocumentStore] search_memories done: returned={len(memories)}")
         return memories
 
     def update_memory(
@@ -346,6 +359,10 @@ class SQLiteDocumentStore(DocumentStore):
         properties: Dict[str, Any] = None
     ) -> bool:
         """更新记忆"""
+        log.info(
+            f"🛠️ [SQLiteDocumentStore] update_memory start: id={memory_id}, has_content={content is not None}, "
+            f"importance={importance}, properties_keys={list((properties or {}).keys())}"
+        )
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -366,6 +383,7 @@ class SQLiteDocumentStore(DocumentStore):
             params.append(json.dumps(properties))
 
         if not update_fields:
+            log.info(f"⏭️ [SQLiteDocumentStore] update_memory skipped: id={memory_id}, no fields")
             return False
 
         update_fields.append("updated_at = CURRENT_TIMESTAMP")
@@ -378,10 +396,13 @@ class SQLiteDocumentStore(DocumentStore):
         """, params)
 
         conn.commit()
-        return cursor.rowcount > 0
+        updated = cursor.rowcount > 0
+        log.success(f"✅ [SQLiteDocumentStore] update_memory done: id={memory_id}, updated={updated}")
+        return updated
 
     def delete_memory(self, memory_id: str) -> bool:
         """删除记忆"""
+        log.info(f"🧹 [SQLiteDocumentStore] delete_memory start: id={memory_id}")
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -389,10 +410,13 @@ class SQLiteDocumentStore(DocumentStore):
         deleted_count = cursor.rowcount
 
         conn.commit()
-        return deleted_count > 0
+        deleted = deleted_count > 0
+        log.success(f"✅ [SQLiteDocumentStore] delete_memory done: id={memory_id}, deleted={deleted}")
+        return deleted
 
     def get_database_stats(self) -> Dict[str, Any]:
         """获取数据库统计信息"""
+        log.debug("📊 [SQLiteDocumentStore] get_database_stats start")
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -431,6 +455,7 @@ class SQLiteDocumentStore(DocumentStore):
         stats["store_type"] = "sqlite"
         stats["db_path"] = self.db_path
 
+        log.info(f"📊 [SQLiteDocumentStore] get_database_stats done: memories={stats.get('memories_count', 0)}")
         return stats
 
     def add_document(self, content: str, metadata: Dict[str, Any] = None) -> str:
@@ -440,6 +465,7 @@ class SQLiteDocumentStore(DocumentStore):
 
         doc_id = str(uuid.uuid4())
         user_id = metadata.get("user_id", "system") if metadata else "system"
+        log.info(f"📄 [SQLiteDocumentStore] add_document start: id={doc_id}, user={user_id}, content_len={len(content)}")
 
         return self.add_memory(
             memory_id=doc_id,

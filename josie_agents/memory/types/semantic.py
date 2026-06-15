@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import hashlib
 from typing import Dict, Any, List, Optional
 
 import numpy as np
@@ -81,6 +82,16 @@ class SemanticMemory(BaseMemory):
     - 混合检索策略：向量+图+语义推理
     """
 
+    _GLINER_MODEL_NAME = "urchade/gliner_multi"
+    _GLINER_LABELS = [
+        "domain concept",
+        "technical term",
+        "method",
+        "tool",
+        "system component"
+    ]
+    _GLINER_THRESHOLD = 0.45
+
     def __init__(self, config: MemoryConfig, storage_backend=None):
         super().__init__(config, storage_backend)
 
@@ -100,6 +111,9 @@ class SemanticMemory(BaseMemory):
         # 实体识别器
         self.nlp = None
         self._init_nlp()
+        self.gliner_model = None
+        self.gliner_available = False
+        self._init_gliner()
 
         # 记忆存储
         self.semantic_memories: List[MemoryItem] = []
@@ -196,23 +210,50 @@ class SemanticMemory(BaseMemory):
             self.nlp = None
             self.nlp_models = {}
 
+    def _init_gliner(self):
+        """初始化GLiNER概念抽取器，失败时自动降级。"""
+        self.gliner_model = None
+        self.gliner_available = False
+
+        try:
+            from gliner import GLiNER
+
+            self.gliner_model = GLiNER.from_pretrained(self._GLINER_MODEL_NAME)
+            self.gliner_available = True
+            log.info(f"✅ 加载GLiNER模型: {self._GLINER_MODEL_NAME}")
+        except ImportError:
+            log.warn("⚠️ GLiNER不可用：未安装gliner包，实体抽取将降级为spaCy")
+        except Exception as e:
+            log.warn(f"⚠️ GLiNER模型加载失败，实体抽取将降级为spaCy: {e}")
+
     def add(self, memory_item: MemoryItem) -> str:
         """添加语义记忆"""
         try:
+            log.info(
+                f"📝 SemanticMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+                f"importance={memory_item.importance:.2f}, content_len={len(memory_item.content)}"
+            )
             # 1. 生成文本嵌入
             embedding = self.embedding_model.encode(memory_item.content)
             self.memory_embeddings[memory_item.id] = embedding
+            log.debug(f"🧬 SemanticMemory embedding done: id={memory_item.id}, dim={len(embedding)}")
 
             # 2. 提取实体和关系
             entities = self._extract_entities(memory_item.content)
             relations = self._extract_relations(memory_item.content, entities)
+            log.info(
+                f"🏷️ SemanticMemory extraction done: id={memory_item.id}, "
+                f"entities={len(entities)}, relations={len(relations)}"
+            )
 
             # 3. 存储到Neo4j图数据库
+            log.debug(f"🕸️ SemanticMemory graph add start: entities={len(entities)}, relations={len(relations)}")
             for entity in entities:
                 self._add_entity_to_graph(entity, memory_item)
 
             for relation in relations:
                 self._add_relation_to_graph(relation, memory_item)
+            log.info(f"✅ SemanticMemory graph add done: id={memory_item.id}")
 
             # 4. 存储到Qdrant向量数据库
             metadata = {
@@ -227,6 +268,7 @@ class SemanticMemory(BaseMemory):
                 "relation_count": len(relations)
             }
 
+            log.debug(f"🧲 SemanticMemory vector add start: id={memory_item.id}")
             success = self.vector_store.add_vectors(
                 vectors=[embedding.tolist()],
                 metadata=[metadata],
@@ -235,6 +277,8 @@ class SemanticMemory(BaseMemory):
 
             if not success:
                 log.warn("⚠️ 向量存储失败，但记忆已添加到图数据库")
+            else:
+                log.info(f"✅ SemanticMemory vector add done: id={memory_item.id}")
 
             # 5. 添加实体信息到元数据
             memory_item.metadata["entities"] = [e.entity_id for e in entities]
@@ -245,7 +289,10 @@ class SemanticMemory(BaseMemory):
             # 6. 存储记忆
             self.semantic_memories.append(memory_item)
 
-            log.success(f"✅ 添加语义记忆: {len(entities)}个实体, {len(relations)}个关系")
+            log.success(
+                f"✅ 添加语义记忆: id={memory_item.id}, "
+                f"{len(entities)}个实体, {len(relations)}个关系, cached={len(self.semantic_memories)}"
+            )
             return memory_item.id
 
         except Exception as e:
@@ -256,17 +303,24 @@ class SemanticMemory(BaseMemory):
         """检索语义记忆"""
         try:
             user_id = kwargs.get("user_id")
+            log.info(
+                f"🔍 SemanticMemory retrieve start: query_len={len(query)}, "
+                f"limit={limit}, user_id={user_id}, cached={len(self.semantic_memories)}"
+            )
 
             # 1. 向量检索
             vector_results = self._vector_search(query, limit * 2, user_id)
+            log.info(f"✅ SemanticMemory vector retrieve done: results={len(vector_results)}")
 
             # 2. 图检索
             graph_results = self._graph_search(query, limit * 2, user_id)
+            log.info(f"✅ SemanticMemory graph retrieve done: results={len(graph_results)}")
 
             # 3. 混合排序
             combined_results = self._combine_and_rank_results(
                 vector_results, graph_results, query, limit
             )
+            log.info(f"📊 SemanticMemory rank done: combined={len(combined_results)}")
 
             # 3.1 计算概率（对 combined_score 做 softmax 归一化）
             scores = [r.get("combined_score", r.get("vector_score", 0.0)) for r in combined_results]
@@ -286,6 +340,7 @@ class SemanticMemory(BaseMemory):
                 # 检查是否已遗忘
                 memory = next((m for m in self.semantic_memories if m.id == memory_id), None)
                 if memory and memory.metadata.get("forgotten", False):
+                    log.debug(f"⏭️ SemanticMemory skip forgotten memory: id={memory_id}")
                     continue  # 跳过已遗忘的记忆
 
                 # 处理时间戳
@@ -318,7 +373,7 @@ class SemanticMemory(BaseMemory):
                 )
                 result_memories.append(memory_item)
 
-            log.success(f"✅ 检索到 {len(result_memories)} 条相关记忆")
+            log.success(f"✅ 检索到 {len(result_memories)} 条相关记忆，返回 {len(result_memories[:limit])} 条")
             return result_memories[:limit]
 
         except Exception as e:
@@ -328,8 +383,10 @@ class SemanticMemory(BaseMemory):
     def _vector_search(self, query: str, limit: int, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Qdrant向量搜索"""
         try:
+            log.debug(f"🔍 SemanticMemory _vector_search start: query_len={len(query)}, limit={limit}, user_id={user_id}")
             # 生成查询向量
             query_embedding = self.embedding_model.encode(query)
+            log.debug(f"🧬 SemanticMemory query embedding done: dim={len(query_embedding)}")
 
             # 构建过滤条件
             where_filter = {"memory_type": "semantic"}
@@ -363,11 +420,14 @@ class SemanticMemory(BaseMemory):
     def _graph_search(self, query: str, limit: int, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Neo4j图搜索"""
         try:
+            log.debug(f"🕸️ SemanticMemory _graph_search start: query_len={len(query)}, limit={limit}, user_id={user_id}")
             # 从查询中提取实体
             query_entities = self._extract_entities(query)
+            log.debug(f"🏷️ SemanticMemory _graph_search extracted entities: count={len(query_entities)}")
 
             if not query_entities:
                 # 如果没有提取到实体，尝试按名称搜索
+                log.debug("🔁 SemanticMemory _graph_search fallback name search")
                 entities_by_name = self.graph_store.search_entities_by_name(
                     name_pattern=query,
                     limit=10
@@ -378,7 +438,9 @@ class SemanticMemory(BaseMemory):
                         name=e["name"],
                         entity_type=e["type"]
                     ) for e in entities_by_name[:3]]
+                    log.debug(f"🎯 SemanticMemory _graph_search name fallback hit: count={len(query_entities)}")
                 else:
+                    log.debug("🕳️ SemanticMemory _graph_search no entities")
                     return []
 
             # 在Neo4j图中查找相关实体和记忆
@@ -408,6 +470,7 @@ class SemanticMemory(BaseMemory):
                 except Exception as e:
                     log.debug(f"图搜索实体 {entity.entity_id} 失败: {e}")
                     continue
+            log.debug(f"🔗 SemanticMemory _graph_search related memory ids: count={len(related_memory_ids)}")
 
             # 构建结果 - 从向量数据库获取完整记忆信息
             results = []
@@ -569,20 +632,24 @@ class SemanticMemory(BaseMemory):
 
     def _extract_entities(self, text: str) -> List[Entity]:
         """智能多语言实体提取"""
-        entities = []
-
-        # 检测文本语言
         lang = self._detect_language(text)
+        spacy_entities, _ = self._extract_spacy_entities(text, lang)
+        gliner_entities = self._extract_gliner_entities(text)
+        return self._merge_extracted_entities(spacy_entities, gliner_entities)
 
+    def _extract_spacy_entities(self, text: str, lang: str) -> tuple[List[Entity], Any]:
+        """使用spaCy提取NER实体和规则概念，并保留词法分析副作用。"""
+        entities = []
         # 选择合适的spaCy模型
         selected_nlp = None
-        if lang == "zh" and "zh_core_web_sm" in self.nlp_models:
-            selected_nlp = self.nlp_models["zh_core_web_sm"]
-        elif lang == "en" and "en_core_web_sm" in self.nlp_models:
-            selected_nlp = self.nlp_models["en_core_web_sm"]
+        nlp_models = getattr(self, "nlp_models", {})
+        if lang == "zh" and "zh_core_web_sm" in nlp_models:
+            selected_nlp = nlp_models["zh_core_web_sm"]
+        elif lang == "en" and "en_core_web_sm" in nlp_models:
+            selected_nlp = nlp_models["en_core_web_sm"]
         else:
             # 使用默认模型
-            selected_nlp = self.nlp
+            selected_nlp = getattr(self, "nlp", None)
 
         log.debug(f"🌐 检测语言: {lang}, 使用模型: {selected_nlp.meta['name'] if selected_nlp else 'None'}")
 
@@ -591,6 +658,7 @@ class SemanticMemory(BaseMemory):
             try:
                 doc = selected_nlp(text)
                 log.debug(f"📝 spaCy处理文本: '{text}' -> {len(doc.ents)} 个实体")
+                log.debug(f"📄 spaCy处理结果, doc.ent: {doc.ents}, doc.text: {doc.text}")
 
                 # 存储词法分析结果，供Neo4j使用
                 self._store_linguistic_analysis(doc, text)
@@ -606,7 +674,8 @@ class SemanticMemory(BaseMemory):
                         entity_id=f"entity_{hash(ent.text)}",
                         name=ent.text,
                         entity_type=ent.label_,
-                        description=f"从文本中识别的{ent.label_}实体"
+                        description=f"从文本中识别的{ent.label_}实体",
+                        properties={"source": "spacy"}
                     )
                     entities.append(entity)
                     # 安全获取置信度信息
@@ -619,6 +688,12 @@ class SemanticMemory(BaseMemory):
 
                     log.debug(f"🏷️ spaCy识别实体: '{ent.text}' -> {ent.label_} (置信度: {confidence})")
 
+                if lang == "zh":
+                    rule_entities = self._extract_spacy_rule_concepts(doc)
+                    entities.extend(rule_entities)
+
+                return entities, doc
+
             except Exception as e:
                 log.warn(f"⚠️ spaCy实体识别失败: {e}")
                 import traceback
@@ -626,11 +701,150 @@ class SemanticMemory(BaseMemory):
         else:
             log.warn("⚠️ 没有可用的spaCy模型进行实体识别")
 
+        return entities, None
+
+    def _extract_spacy_rule_concepts(self, doc) -> List[Entity]:
+        """基于中文依存结构抽取泛化概念短语，作为GLiNER不可用时的兜底。"""
+        concept_candidates = []
+        content_pos = {"NOUN", "PROPN", "ADJ"}
+        modifier_deps = {"compound:nn", "amod", "acl"}
+
+        for token in doc:
+            token_text = token.text.strip()
+            if not token_text or token.pos_ not in {"NOUN", "PROPN"}:
+                continue
+
+            start = token.i
+            for left in reversed(list(token.lefts)):
+                left_text = left.text.strip()
+                if not left_text or left.pos_ not in content_pos or left.dep_ not in modifier_deps:
+                    continue
+                start = min(start, left.i)
+
+            if start < token.i:
+                span = doc[start:token.i + 1]
+                if all(item.pos_ in content_pos and not item.is_punct and not item.is_space for item in span):
+                    concept_candidates.append(span.text)
+
+            if token.i > 0:
+                previous = doc[token.i - 1]
+                previous_text = previous.text.strip()
+                if (
+                    previous_text
+                    and previous.pos_ in content_pos | {"VERB"}
+                    and previous.dep_ in modifier_deps | {"conj"}
+                    and (
+                        previous.head == token
+                        or (
+                            previous.pos_ == "VERB"
+                            and previous.dep_ == "conj"
+                            and previous.head.pos_ in {"NOUN", "PROPN"}
+                            and token.dep_ in modifier_deps
+                        )
+                    )
+                    and not previous.is_punct
+                ):
+                    concept_candidates.append(f"{previous_text}{token_text}")
+
+        entities = []
+        for name in sorted(set(concept_candidates), key=len, reverse=True):
+            if len(name) < 2:
+                continue
+            entity = Entity(
+                entity_id=self._stable_concept_id(name),
+                name=name,
+                entity_type="CONCEPT",
+                description=f"规则识别的中文领域概念: {name}",
+                properties={"source": "spacy_rule", "language": "zh"}
+            )
+            entities.append(entity)
+            log.debug(f"🧩 spaCy规则识别概念: '{name}' -> CONCEPT")
+
         return entities
+
+    def _extract_gliner_entities(self, text: str) -> List[Entity]:
+        """使用GLiNER抽取自定义标签概念，失败时返回空列表。"""
+        if not getattr(self, "gliner_available", False) or not getattr(self, "gliner_model", None):
+            return []
+
+        try:
+            raw_entities = self.gliner_model.predict_entities(
+                text,
+                self._GLINER_LABELS,
+                threshold=self._GLINER_THRESHOLD
+            )
+        except Exception as e:
+            log.warn(f"⚠️ GLiNER实体识别失败，已跳过: {e}")
+            return []
+
+        entities = []
+        for item in raw_entities:
+            name = (item.get("text") or item.get("entity") or "").strip()
+            if not name:
+                continue
+            entity = Entity(
+                entity_id=self._stable_concept_id(name),
+                name=name,
+                entity_type="CONCEPT",
+                description=f"GLiNER识别的概念实体: {name}",
+                properties={
+                    "source": "gliner",
+                    "gliner_label": item.get("label", ""),
+                    "score": item.get("score", 0.0),
+                    "start": item.get("start"),
+                    "end": item.get("end")
+                }
+            )
+            entities.append(entity)
+            log.debug(f"🧠 GLiNER识别概念: '{name}' -> {item.get('label', '')} ({item.get('score', 0.0):.3f})")
+
+        return entities
+
+    def _merge_extracted_entities(self, *entity_groups: List[Entity]) -> List[Entity]:
+        """合并spaCy、spaCy规则和GLiNER结果，按名称去重并去掉概念碎片。"""
+        def priority(entity: Entity) -> int:
+            source = entity.properties.get("source")
+            if source == "gliner" and entity.entity_type == "CONCEPT":
+                return 3
+            if source == "spacy_rule" and entity.entity_type == "CONCEPT":
+                return 2
+            return 1
+
+        by_name: Dict[str, Entity] = {}
+        for group in entity_groups:
+            for entity in group:
+                name = entity.name.strip()
+                if not name:
+                    continue
+                existing = by_name.get(name)
+                if existing is None or priority(entity) > priority(existing):
+                    by_name[name] = entity
+
+        entities = list(by_name.values())
+        long_concepts = [
+            entity for entity in entities
+            if entity.entity_type == "CONCEPT" and len(entity.name) > 1
+        ]
+        filtered = []
+        for entity in entities:
+            if entity.entity_type == "CONCEPT" and any(
+                entity.name != other.name and entity.name in other.name
+                for other in long_concepts
+            ):
+                log.debug(f"🧹 跳过被长概念覆盖的短概念: '{entity.name}'")
+                continue
+            filtered.append(entity)
+
+        return filtered
+
+    def _stable_concept_id(self, name: str) -> str:
+        """为规则和GLiNER概念生成稳定ID。"""
+        entity_id = hashlib.sha1(name.encode("utf-8")).hexdigest()[:16]
+        return f"concept_{entity_id}"
 
     def _store_linguistic_analysis(self, doc, text: str):
         """存储spaCy词法分析结果到Neo4j"""
-        if not self.graph_store:
+        if not getattr(self, "graph_store", None):
             return
 
         try:
@@ -869,8 +1083,13 @@ class SemanticMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新语义记忆"""
+        log.info(
+            f"🛠️ SemanticMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
+        )
         memory = self._find_memory_by_id(memory_id)
         if not memory:
+            log.warn(f"⚠️ SemanticMemory update miss: id={memory_id}")
             return False
 
         try:
@@ -878,15 +1097,21 @@ class SemanticMemory(BaseMemory):
                 # 重新生成嵌入和提取实体
                 embedding = self.embedding_model.encode(content)
                 self.memory_embeddings[memory_id] = embedding
+                log.debug(f"🧬 SemanticMemory update embedding done: id={memory_id}, dim={len(embedding)}")
 
                 # 清理旧的实体关系
                 old_entities = memory.metadata.get("entities", [])
                 self._cleanup_entities_and_relations(old_entities)
+                log.debug(f"🧹 SemanticMemory old entities cleanup requested: id={memory_id}, count={len(old_entities)}")
 
                 # 提取新的实体和关系
                 memory.content = content
                 entities = self._extract_entities(content)
                 relations = self._extract_relations(content, entities)
+                log.info(
+                    f"🏷️ SemanticMemory update extraction done: id={memory_id}, "
+                    f"entities={len(entities)}, relations={len(relations)}"
+                )
 
                 # 更新知识图谱
                 for entity in entities:
@@ -906,6 +1131,7 @@ class SemanticMemory(BaseMemory):
             if metadata is not None:
                 memory.metadata.update(metadata)
 
+                log.success(f"✅ SemanticMemory update done: id={memory_id}")
                 return True
 
         except Exception as e:
@@ -914,23 +1140,29 @@ class SemanticMemory(BaseMemory):
 
     def remove(self, memory_id: str) -> bool:
         """删除语义记忆"""
+        log.info(f"🧹 SemanticMemory remove start: id={memory_id}, cached={len(self.semantic_memories)}")
         memory = self._find_memory_by_id(memory_id)
         if not memory:
+            log.warn(f"⚠️ SemanticMemory remove miss: id={memory_id}")
             return False
 
         try:
             # 删除向量
+            log.debug(f"🧲 SemanticMemory vector delete start: id={memory_id}")
             self.vector_store.delete_memories([memory_id])
+            log.info(f"✅ SemanticMemory vector delete done: id={memory_id}")
 
             # 清理实体和关系
             entities = memory.metadata.get("entities", [])
             self._cleanup_entities_and_relations(entities)
+            log.debug(f"🧹 SemanticMemory entity cleanup requested: id={memory_id}, count={len(entities)}")
 
             # 删除记忆
             self.semantic_memories.remove(memory)
             if memory_id in self.memory_embeddings:
                 del self.memory_embeddings[memory_id]
 
+                log.success(f"✅ SemanticMemory remove done: id={memory_id}, cached={len(self.semantic_memories)}")
                 return True
 
         except Exception as e:
@@ -949,6 +1181,10 @@ class SemanticMemory(BaseMemory):
 
     def forget(self, strategy: str = "importance_based", threshold: float = 0.1, max_age_days: int = 30) -> int:
         """语义记忆遗忘机制（硬删除）"""
+        log.info(
+            f"🧹 SemanticMemory forget start: strategy={strategy}, threshold={threshold}, "
+            f"max_age_days={max_age_days}, count={len(self.semantic_memories)}"
+        )
         forgotten_count = 0
         current_time = datetime.now()
 
@@ -983,11 +1219,16 @@ class SemanticMemory(BaseMemory):
                 forgotten_count += 1
                 log.info(f"语义记忆硬删除: {memory_id[:8]}... (策略: {strategy})")
 
+        log.success(f"✅ SemanticMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count
 
     def clear(self):
         """清空所有语义记忆 - 包括专业数据库"""
         try:
+            log.info(
+                f"🧹 SemanticMemory clear start: memories={len(self.semantic_memories)}, "
+                f"entities={len(self.entities)}, relations={len(self.relations)}"
+            )
             # 清空Qdrant向量数据库
             if self.vector_store:
                 success = self.vector_store.clear_collection()
@@ -1022,10 +1263,12 @@ class SemanticMemory(BaseMemory):
 
     def get_all(self) -> List[MemoryItem]:
         """获取所有语义记忆"""
+        log.debug(f"📦 SemanticMemory get_all: count={len(self.semantic_memories)}")
         return self.semantic_memories.copy()
 
     def get_stats(self) -> Dict[str, Any]:
         """获取语义记忆统计信息"""
+        log.debug("📊 SemanticMemory stats start")
         graph_stats = {}
         try:
             if self.graph_store:
@@ -1161,4 +1404,3 @@ class SemanticMemory(BaseMemory):
                 "relations": [],
                 "graph_stats": {"error": str(e)}
             }
-

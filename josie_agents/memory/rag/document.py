@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
+import josie_agents.utils.log as log
 
 @dataclass
 class Document:
@@ -55,6 +56,10 @@ class DocumentProcessor:
         Returns:
             文档块列表
         """
+        log.info(
+            f"📄 [RAGDocumentProcessor] process_document start: doc_id={document.doc_id}, "
+            f"content_len={len(document.content)}, chunk_size={self.chunk_size}, overlap={self.chunk_overlap}"
+        )
         chunks = self._split_text(document.content)
 
         document_chunks = []
@@ -76,6 +81,10 @@ class DocumentProcessor:
             )
             document_chunks.append(chunk)
 
+        log.success(
+            f"✅ [RAGDocumentProcessor] process_document done: doc_id={document.doc_id}, "
+            f"chunks={len(document_chunks)}"
+        )
         return document_chunks
 
     def process_documents(self, documents: List[Document]) -> List[DocumentChunk]:
@@ -88,11 +97,13 @@ class DocumentProcessor:
         Returns:
             所有文档块列表
         """
+        log.info(f"📚 [RAGDocumentProcessor] process_documents start: docs={len(documents)}")
         all_chunks = []
         for document in documents:
             chunks = self.process_document(document)
             all_chunks.extend(chunks)
 
+        log.success(f"✅ [RAGDocumentProcessor] process_documents done: chunks={len(all_chunks)}")
         return all_chunks
 
     def _split_text(self, text: str) -> List[str]:
@@ -106,8 +117,10 @@ class DocumentProcessor:
             文本块列表
         """
         if len(text) <= self.chunk_size:
+            log.debug(f"✂️ [RAGDocumentProcessor] split_text short path: len={len(text)}")
             return [text]
 
+        log.debug(f"✂️ [RAGDocumentProcessor] split_text start: len={len(text)}")
         chunks = []
         start = 0
 
@@ -132,6 +145,7 @@ class DocumentProcessor:
             # 计算下一块的开始位置（考虑重叠）
             start = max(start + 1, split_point - self.chunk_overlap)
 
+        log.debug(f"✅ [RAGDocumentProcessor] split_text done: chunks={len(chunks)}")
         return chunks
 
     def _find_split_point(self, text: str, start: int, end: int) -> int:
@@ -169,8 +183,10 @@ class DocumentProcessor:
             合并后的文档块列表
         """
         if not chunks:
+            log.info("⏭️ [RAGDocumentProcessor] merge_chunks skipped: empty chunks")
             return []
 
+        log.info(f"🔗 [RAGDocumentProcessor] merge_chunks start: chunks={len(chunks)}, max_length={max_length}")
         merged_chunks = []
         current_chunk = chunks[0]
 
@@ -191,6 +207,7 @@ class DocumentProcessor:
         # 添加最后一个块
         merged_chunks.append(current_chunk)
 
+        log.success(f"✅ [RAGDocumentProcessor] merge_chunks done: chunks={len(chunks)} -> {len(merged_chunks)}")
         return merged_chunks
 
     def filter_chunks(self, chunks: List[DocumentChunk], min_length: int = 50) -> List[DocumentChunk]:
@@ -204,7 +221,12 @@ class DocumentProcessor:
         Returns:
             过滤后的文档块列表
         """
-        return [chunk for chunk in chunks if len(chunk.content.strip()) >= min_length]
+        filtered = [chunk for chunk in chunks if len(chunk.content.strip()) >= min_length]
+        log.info(
+            f"🧹 [RAGDocumentProcessor] filter_chunks done: chunks={len(chunks)} -> {len(filtered)}, "
+            f"min_length={min_length}"
+        )
+        return filtered
 
     def add_chunk_metadata(self, chunks: List[DocumentChunk], metadata: Dict[str, Any]) -> List[DocumentChunk]:
         """
@@ -217,9 +239,14 @@ class DocumentProcessor:
         Returns:
             更新后的文档块列表
         """
+        log.info(
+            f"🏷️ [RAGDocumentProcessor] add_chunk_metadata start: chunks={len(chunks)}, "
+            f"metadata_keys={list(metadata.keys())}"
+        )
         for chunk in chunks:
             chunk.metadata.update(metadata)
 
+        log.success(f"✅ [RAGDocumentProcessor] add_chunk_metadata done: chunks={len(chunks)}")
         return chunks
 
 
@@ -258,4 +285,3 @@ def create_document(content: str, **metadata) -> Document:
         文档对象
     """
     return Document(content=content, metadata=metadata)
-

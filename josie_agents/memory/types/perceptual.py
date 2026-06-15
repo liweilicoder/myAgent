@@ -143,10 +143,17 @@ class PerceptualMemory(BaseMemory):
         """添加感知记忆（SQLite权威 + Qdrant向量）"""
         modality = memory_item.metadata.get("modality", "text")
         raw_data = memory_item.metadata.get("raw_data", memory_item.content)
+        log.info(
+            f"📝 PerceptualMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+            f"modality={modality}, importance={memory_item.importance:.2f}, "
+            f"metadata_keys={list(memory_item.metadata.keys())}"
+        )
         if modality not in self.supported_modalities:
+            log.error(f"❌ 不支持模态类型：{modality}")
             raise ValueError(f"不支持的模态类型: {modality}")
 
         # 编码感知数据
+        log.debug(f"🧬 PerceptualMemory encode start: id={memory_item.id}, modality={modality}")
         perception = self._encode_perception(raw_data, modality, memory_item.id)
 
         # 缓存与索引
@@ -154,6 +161,10 @@ class PerceptualMemory(BaseMemory):
         if modality not in self.modality_index:
             self.modality_index[modality] = []
         self.modality_index[modality].append(perception.perception_id)
+        log.debug(
+            f"📦 PerceptualMemory cached perception: id={perception.perception_id}, "
+            f"modality={modality}, modality_count={len(self.modality_index[modality])}"
+        )
 
         # 存储记忆项（缓存）
         memory_item.metadata["perception_id"] = perception.perception_id
@@ -163,6 +174,7 @@ class PerceptualMemory(BaseMemory):
 
         # 1) SQLite 权威入库
         ts_int = int(memory_item.timestamp.timestamp())
+        log.debug(f"💾 PerceptualMemory SQLite add start: id={memory_item.id}, ts={ts_int}")
         self.doc_store.add_memory(
             memory_id=memory_item.id,
             user_id=memory_item.user_id,
@@ -177,9 +189,11 @@ class PerceptualMemory(BaseMemory):
                 "tags": memory_item.metadata.get("tags", []),
             }
         )
+        log.info(f"✅ PerceptualMemory SQLite add done: id={memory_item.id}")
 
         # 2) Qdrant 向量入库（按模态写入对应集合）
         try:
+            log.debug(f"🧲 PerceptualMemory vector add start: id={memory_item.id}, modality={modality}")
             vector = perception.encoding
             store = self._get_vector_store_for_modality(modality)
             store.add_vectors(
@@ -194,9 +208,11 @@ class PerceptualMemory(BaseMemory):
                 }],
                 ids=[memory_item.id]
             )
-        except Exception:
-            pass
+            log.info(f"✅ PerceptualMemory vector add done: id={memory_item.id}, dim={len(vector)}")
+        except Exception as e:
+            log.warn(f"⚠️ PerceptualMemory vector add failed, SQLite kept: id={memory_item.id}, error={e}")
 
+        log.success(f"✅ PerceptualMemory add done: id={memory_item.id}, modality={modality}")
         return memory_item.id
 
     def retrieve(self, query: str, limit: int = 5, **kwargs) -> List[MemoryItem]:
@@ -204,9 +220,14 @@ class PerceptualMemory(BaseMemory):
         user_id = kwargs.get("user_id")
         target_modality = kwargs.get("target_modality")  # 可选：限制目标模态
         query_modality = kwargs.get("query_modality", target_modality or "text")
+        log.info(
+            f"🔍 PerceptualMemory retrieve start: query_len={len(query)}, limit={limit}, "
+            f"user_id={user_id}, query_modality={query_modality}, target_modality={target_modality}"
+        )
 
         # 仅在同模态情况下进行向量检索（跨模态需要CLIP/CLAP，此处保留简单回退）
         try:
+            log.debug("🔍 PerceptualMemory vector search start")
             qvec = self._encode_data(query, query_modality)
             where = {"memory_type": "perceptual"}
             if user_id:
@@ -219,8 +240,10 @@ class PerceptualMemory(BaseMemory):
                 limit=max(limit * 5, 20),
                 where=where
             )
-        except Exception:
+            log.info(f"✅ PerceptualMemory vector search done: hits={len(hits)}")
+        except Exception as e:
             hits = []
+            log.warn(f"⚠️ PerceptualMemory vector search failed, fallback may run: {e}")
 
         # 融合排序
         now_ts = int(datetime.now().timestamp())
@@ -266,6 +289,7 @@ class PerceptualMemory(BaseMemory):
 
         # 简单回退：若无命中且有目标模态，则按SQLite结构化过滤+关键词兜底
         if not results:
+            log.info(f"🔁 PerceptualMemory fallback keyword search start: cached={len(self.perceptual_memories)}")
             for m in self.perceptual_memories:
                 if target_modality and m.metadata.get("modality") != target_modality:
                     continue
@@ -279,7 +303,9 @@ class PerceptualMemory(BaseMemory):
                     results.append((combined, m))
 
         results.sort(key=lambda x: x[0], reverse=True)
-        return [it for _, it in results[:limit]]
+        final_results = [it for _, it in results[:limit]]
+        log.success(f"✅ PerceptualMemory retrieve done: ranked={len(results)}, returned={len(final_results)}")
+        return final_results
 
     def update(
         self,
@@ -289,6 +315,10 @@ class PerceptualMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新感知记忆"""
+        log.info(
+            f"🛠️ PerceptualMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
+        )
         updated = False
         modality_cache = None
         for memory in self.perceptual_memories:
@@ -302,20 +332,23 @@ class PerceptualMemory(BaseMemory):
                 modality_cache = memory.metadata.get("modality", "text")
                 updated = True
                 break
+        log.debug(f"📦 PerceptualMemory cache update done: id={memory_id}, updated={updated}, modality={modality_cache}")
 
         # 更新SQLite
-        self.doc_store.update_memory(
+        doc_updated = self.doc_store.update_memory(
             memory_id=memory_id,
             content=content,
             importance=importance,
             properties=metadata
         )
+        log.info(f"💾 PerceptualMemory SQLite update done: id={memory_id}, updated={doc_updated}")
 
         # 如内容或原始数据改变，则重嵌入并upsert到Qdrant
         if content is not None or (metadata and "raw_data" in metadata):
             modality = metadata.get("modality", modality_cache or "text") if metadata else (modality_cache or "text")
             raw = metadata.get("raw_data", content) if metadata else content
             try:
+                log.debug(f"🧲 PerceptualMemory vector update start: id={memory_id}, modality={modality}")
                 perception = self._encode_perception(raw or "", modality, memory_id)
                 payload = self.doc_store.get_memory(memory_id) or {}
                 store = self._get_vector_store_for_modality(modality)
@@ -331,13 +364,16 @@ class PerceptualMemory(BaseMemory):
                     }],
                     ids=[memory_id]
                 )
-            except Exception:
-                pass
+                log.info(f"✅ PerceptualMemory vector update done: id={memory_id}, dim={len(perception.encoding)}")
+            except Exception as e:
+                log.warn(f"⚠️ PerceptualMemory vector update failed: id={memory_id}, error={e}")
 
+        log.success(f"✅ PerceptualMemory update done: id={memory_id}, updated={updated}")
         return updated
 
     def remove(self, memory_id: str) -> bool:
         """删除感知记忆"""
+        log.info(f"🧹 PerceptualMemory remove start: id={memory_id}, cached={len(self.perceptual_memories)}")
         removed = False
         for i, memory in enumerate(self.perceptual_memories):
             if memory.id == memory_id:
@@ -353,16 +389,20 @@ class PerceptualMemory(BaseMemory):
                             del self.modality_index[modality]
                 removed = True
                 break
+        log.debug(f"📦 PerceptualMemory cache remove done: id={memory_id}, removed={removed}")
 
         # 权威库删除
-        self.doc_store.delete_memory(memory_id)
+        doc_deleted = self.doc_store.delete_memory(memory_id)
+        log.info(f"💾 PerceptualMemory SQLite delete done: id={memory_id}, deleted={doc_deleted}")
         # 向量库删除（所有模态集合尝试删除）
         for store in self.vector_stores.values():
             try:
                 store.delete_memories([memory_id])
-            except Exception:
-                pass
+                log.debug(f"🧲 PerceptualMemory vector delete attempted: id={memory_id}")
+            except Exception as e:
+                log.warn(f"⚠️ PerceptualMemory vector delete failed: id={memory_id}, error={e}")
 
+        log.success(f"✅ PerceptualMemory remove done: id={memory_id}, removed={removed}")
         return removed
 
     def has_memory(self, memory_id: str) -> bool:
@@ -371,6 +411,10 @@ class PerceptualMemory(BaseMemory):
 
     def forget(self, strategy: str = "importance_based", threshold: float = 0.1, max_age_days: int = 30) -> int:
         """感知记忆遗忘机制（硬删除）"""
+        log.info(
+            f"🧹 PerceptualMemory forget start: strategy={strategy}, threshold={threshold}, "
+            f"max_age_days={max_age_days}, count={len(self.perceptual_memories)}"
+        )
         forgotten_count = 0
         current_time = datetime.now()
 
@@ -405,16 +449,19 @@ class PerceptualMemory(BaseMemory):
                 forgotten_count += 1
                 log.info(f"感知记忆硬删除: {memory_id[:8]}... (策略: {strategy})")
 
+        log.success(f"✅ PerceptualMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count
 
     def clear(self):
         """清空所有感知记忆"""
+        log.info(f"🧹 PerceptualMemory clear start: cached={len(self.perceptual_memories)}")
         self.perceptual_memories.clear()
         self.perceptions.clear()
         self.modality_index.clear()
         # 删除SQLite中的perceptual记录
         docs = self.doc_store.search_memories(memory_type="perceptual", limit=10000)
         ids = [d["memory_id"] for d in docs]
+        log.info(f"💾 PerceptualMemory clear SQLite ids: count={len(ids)}")
         for mid in ids:
             self.doc_store.delete_memory(mid)
         # 删除Qdrant向量（所有模态集合）
@@ -422,15 +469,19 @@ class PerceptualMemory(BaseMemory):
             try:
                 if ids:
                     store.delete_memories(ids)
-            except Exception:
-                pass
+                    log.debug(f"🧲 PerceptualMemory clear vector attempted: count={len(ids)}")
+            except Exception as e:
+                log.warn(f"⚠️ PerceptualMemory clear vector failed: {e}")
+        log.success("✅ PerceptualMemory clear done")
 
     def get_all(self) -> List[MemoryItem]:
         """获取所有感知记忆"""
+        log.debug(f"📦 PerceptualMemory get_all: count={len(self.perceptual_memories)}")
         return self.perceptual_memories.copy()
 
     def get_stats(self) -> Dict[str, Any]:
         """获取感知记忆统计信息"""
+        log.debug("📊 PerceptualMemory stats start")
         # 硬删除模式：所有记忆都是活跃的
         active_memories = self.perceptual_memories
 
@@ -466,6 +517,10 @@ class PerceptualMemory(BaseMemory):
         limit: int = 5
     ) -> List[MemoryItem]:
         """跨模态搜索"""
+        log.info(
+            f"🔀 PerceptualMemory cross_modal_search start: query_modality={query_modality}, "
+            f"target_modality={target_modality}, limit={limit}"
+        )
         return self.retrieve(
             query=str(query),
             limit=limit,
@@ -476,6 +531,7 @@ class PerceptualMemory(BaseMemory):
     def get_by_modality(self, modality: str, limit: int = 10) -> List[MemoryItem]:
         """按模态获取记忆"""
         if modality not in self.modality_index:
+            log.info(f"🕳️ PerceptualMemory get_by_modality empty: modality={modality}")
             return []
 
         perception_ids = self.modality_index[modality]
@@ -487,6 +543,7 @@ class PerceptualMemory(BaseMemory):
                 if len(results) >= limit:
                     break
 
+        log.info(f"✅ PerceptualMemory get_by_modality done: modality={modality}, returned={len(results)}")
         return results
 
     def generate_content(self, prompt: str, target_modality: str) -> Optional[str]:
@@ -495,12 +552,14 @@ class PerceptualMemory(BaseMemory):
         # 实际应用中需要使用生成模型
 
         if target_modality not in self.supported_modalities:
+            log.warn(f"⚠️ PerceptualMemory generate_content unsupported modality: {target_modality}")
             return None
 
         # 检索相关感知记忆
         relevant_memories = self.retrieve(prompt, limit=3)
 
         if not relevant_memories:
+            log.info("🕳️ PerceptualMemory generate_content no relevant memories")
             return None
 
         # 简单的内容组合
@@ -536,6 +595,7 @@ class PerceptualMemory(BaseMemory):
             metadata={"source": "memory_system"}
         )
 
+        log.debug(f"🧑‍💻 encode perception finished, data={data}, encoding={len(encoding)}")
         return perception
 
     def _encode_data(self, data: Any, modality: str) -> List[float]:
@@ -549,6 +609,8 @@ class PerceptualMemory(BaseMemory):
             vec = vec + [0.0] * (target_dim - len(vec))
         elif len(vec) > target_dim:
             vec = vec[:target_dim]
+
+        log.info(f"🧑‍💻 encode data finished, data={data}, dim={target_dim}, encoder={encoder.__name__}")
         return vec
 
     def _text_encoder(self, text: str) -> List[float]:
@@ -702,4 +764,3 @@ class PerceptualMemory(BaseMemory):
         if mod == "audio":
             return int(self._audio_dim or self.vector_dim)
         return int(self.vector_dim)
-

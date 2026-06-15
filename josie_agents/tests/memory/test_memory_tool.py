@@ -17,8 +17,6 @@ def create_memory_tool():
     )
 
     log.success("✅ MemoryTool初始化完成")
-    log.info(f"📋 支持的操作: add, search, summary, stats, update, remove, forget, consolidate, clear_all")
-
     return memory_tool
 
 
@@ -65,7 +63,7 @@ def test_add_memory(memory_tool):
         "content": "查看了记忆系统的架构图和实现代码",
         "memory_type": "perceptual",
         "importance": 0.6,
-        "modality": "document",
+        "modality": "text",
         "source": "technical_documentation"
     })
     log.info(f"感知记忆: {result}")
@@ -150,22 +148,31 @@ def test_memory_management(memory_tool):
     })
     log.info(result)
 
+def test_clear_memory(memory_tool):
+    log.delimiter("清空全部记忆， 清理测试环境")
+    result = memory_tool.run({
+        "action": "clear_all",
+    })
+    log.info(result)
+
 if __name__ == "__main__":
     try:
         # 1. 初始化MemoryTool
         memory_tool = create_memory_tool()
 
         # 2. 添加记忆演示
-        #test_add_memory(memory_tool)
+        test_add_memory(memory_tool)
 
         # 3. 搜索记忆演示
-        #test_search_memory(memory_tool)
+        test_search_memory(memory_tool)
 
         # 4. 记忆摘要演示
         #test_memory_summary(memory_tool)
 
         # 5. 记忆管理演示
         #test_memory_management(memory_tool)
+
+        test_clear_memory(memory_tool)
 
         log.success("🎉 MemoryTool基础操作演示完成！")
 

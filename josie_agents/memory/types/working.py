@@ -31,14 +31,22 @@ class WorkingMemory(BaseMemory):
 
         # 使用优先级队列管理记忆
         self.memory_heap = []  # (priority, timestamp, memory_item)
-        log.success("🎉 Working Memory Initialized!")
+        log.success(
+            f"🎉 Working Memory Initialized! capacity={self.max_capacity}, "
+            f"max_tokens={self.max_tokens}, ttl_minutes={self.max_age_minutes}"
+        )
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加工作记忆"""
+        log.info(
+            f"📝 WorkingMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+            f"importance={memory_item.importance:.2f}, count={len(self.memories)}, tokens={self.current_tokens}"
+        )
         # 过期清理
         self._expire_old_memories()
         # 计算优先级（重要性 + 时间衰减）
         priority = self._calculate_priority(memory_item)
+        log.debug(f"🧮 WorkingMemory priority calculated: id={memory_item.id}, priority={priority:.4f}")
 
         # heapq 小顶堆：存 (priority, timestamp, memory_item)，堆顶始终是优先级最低的记忆
         heapq.heappush(self.memory_heap, (priority, memory_item.timestamp, memory_item))
@@ -49,22 +57,32 @@ class WorkingMemory(BaseMemory):
 
         # 检查容量限制
         self._enforce_capacity_limits()
-        log.success(f"🌺 Working Memory Added Success: {memory_item}")
+        log.success(
+            f"🌺 Working Memory Added Success: {memory_item}, "
+            f"count={len(self.memories)}, tokens={self.current_tokens}"
+        )
         return memory_item.id
 
     def retrieve(self, query: str, limit: int = 5, user_id: str = None, **kwargs) -> List[MemoryItem]:
         """检索工作记忆 - 混合语义向量检索和关键词匹配"""
+        log.info(
+            f"🔍 WorkingMemory retrieve start: query_len={len(query)}, limit={limit}, "
+            f"user_id={user_id}, count={len(self.memories)}"
+        )
         # 清理过期的记忆， 防止已经遗忘的记忆被召回
         self._expire_old_memories()
         if not self.memories:
+            log.info("🕳️ WorkingMemory retrieve done: no memories")
             return []
 
         # 按用户ID过滤（如果提供）
         filtered_memories = self.memories
         if user_id:
             filtered_memories = [m for m in self.memories if m.user_id == user_id]
+        log.debug(f"🎯 WorkingMemory filter done: filtered={len(filtered_memories)}")
 
         if not filtered_memories:
+            log.info("🕳️ WorkingMemory retrieve done: no memories after user filter")
             return []
 
         # 尝试语义向量检索（如果有嵌入模型）
@@ -95,11 +113,12 @@ class WorkingMemory(BaseMemory):
             # 存储向量分数
             for i, memory in enumerate(filtered_memories):
                 vector_scores[memory.id] = similarities[i]
+            log.info(f"🧮 WorkingMemory vector score done: scored={len(vector_scores)}")
 
         except Exception as e:
             # 如果向量检索失败，回退到关键词匹配
             vector_scores = {}
-            log.warn("☹️vectorizer failed，back to keyword")
+            log.warn(f"☹️vectorizer failed，back to keyword: {e}")
 
         # 计算最终分数
         query_lower = query.lower()
@@ -146,7 +165,9 @@ class WorkingMemory(BaseMemory):
 
         # 按分数排序并返回
         scored_memories.sort(key=lambda x: x[0], reverse=True)
-        return [memory for _, memory in scored_memories[:limit]]
+        results = [memory for _, memory in scored_memories[:limit]]
+        log.success(f"✅ WorkingMemory retrieve done: scored={len(scored_memories)}, returned={len(results)}")
+        return results
 
     def update(
         self,
@@ -156,6 +177,10 @@ class WorkingMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新工作记忆"""
+        log.info(
+            f"🛠️ WorkingMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
+        )
         for memory in self.memories:
             if memory.id == memory_id:
                 old_tokens = len(memory.content.split())
@@ -176,10 +201,12 @@ class WorkingMemory(BaseMemory):
                 self._update_heap_priority(memory)
                 log.success(f"🎉 Working Memory Updated: {memory}")
                 return True
+        log.warn(f"⚠️ WorkingMemory update miss: id={memory_id}")
         return False
 
     def remove(self, memory_id: str) -> bool:
         """删除工作记忆"""
+        log.info(f"🧹 WorkingMemory remove start: id={memory_id}, count={len(self.memories)}")
         for i, memory in enumerate(self.memories):
             if memory.id == memory_id:
                 removed_memory = self.memories.pop(i)
@@ -189,6 +216,7 @@ class WorkingMemory(BaseMemory):
                 self.current_tokens = max(0, self.current_tokens)
                 log.success(f"🧹 Working Memory Removed: {removed_memory}")
                 return True
+        log.warn(f"⚠️ WorkingMemory remove miss: id={memory_id}")
         return False
 
     def has_memory(self, memory_id: str) -> bool:
@@ -197,12 +225,15 @@ class WorkingMemory(BaseMemory):
 
     def clear(self):
         """清空所有工作记忆"""
+        log.info(f"🧹 WorkingMemory clear start: count={len(self.memories)}, tokens={self.current_tokens}")
         self.memories.clear()
         self.memory_heap.clear()
         self.current_tokens = 0
+        log.success("✅ WorkingMemory clear done")
 
     def get_stats(self) -> Dict[str, Any]:
         """获取工作记忆统计信息"""
+        log.debug("📊 WorkingMemory stats start")
         # 过期清理（惰性）
         self._expire_old_memories()
 
@@ -279,6 +310,10 @@ class WorkingMemory(BaseMemory):
 
     def forget(self, strategy: str = "importance_based", threshold: float = 0.1, max_age_days: int = 1) -> int:
         """工作记忆遗忘机制"""
+        log.info(
+            f"🧹 WorkingMemory forget start: strategy={strategy}, threshold={threshold}, "
+            f"max_age_days={max_age_days}, count={len(self.memories)}"
+        )
         forgotten_count = 0
         current_time = datetime.now()
 
@@ -320,6 +355,7 @@ class WorkingMemory(BaseMemory):
             if self.remove(memory_id):
                 forgotten_count += 1
 
+        log.success(f"✅ WorkingMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count
 
     def _calculate_priority(self, memory: MemoryItem) -> float:
@@ -346,10 +382,12 @@ class WorkingMemory(BaseMemory):
         """强制执行容量限制"""
         # 检查记忆数量限制
         while len(self.memories) > self.max_capacity:
+            log.warn(f"⚠️ WorkingMemory count over capacity: count={len(self.memories)}, max={self.max_capacity}")
             self._remove_lowest_priority_memory()
 
         # 检查token限制
         while self.current_tokens > self.max_tokens:
+            log.warn(f"⚠️ WorkingMemory tokens over capacity: tokens={self.current_tokens}, max={self.max_tokens}")
             self._remove_lowest_priority_memory()
 
     def _expire_old_memories(self):
@@ -369,6 +407,7 @@ class WorkingMemory(BaseMemory):
         if len(kept) == len(self.memories):
             return
         # 覆盖列表与token
+        removed_count = len(self.memories) - len(kept)
         self.memories = kept
         self.current_tokens = max(0, self.current_tokens - removed_token_sum)
         # 重建堆
@@ -376,19 +415,26 @@ class WorkingMemory(BaseMemory):
         for mem in self.memories:
             priority = self._calculate_priority(mem)
             heapq.heappush(self.memory_heap, (priority, mem.timestamp, mem))
+        log.info(
+            f"🧹 WorkingMemory expired cleanup done: removed={removed_count}, "
+            f"remaining={len(self.memories)}, tokens={self.current_tokens}"
+        )
 
     def _remove_lowest_priority_memory(self):
         """从堆顶取出优先级最低的记忆并删除；跳过堆中已失效的 stale 条目"""
         while self.memory_heap:
             priority, timestamp, memory = heapq.heappop(self.memory_heap)
             if self.has_memory(memory.id):
+                log.info(f"🧹 WorkingMemory remove lowest priority: id={memory.id}, priority={priority:.4f}")
                 self.remove(memory.id)
                 return
+        log.warn("⚠️ WorkingMemory remove lowest priority skipped: heap empty")
 
     def _update_heap_priority(self, memory: MemoryItem):
         """更新堆中记忆的优先级（重建堆）"""
+        log.debug(f"🔁 WorkingMemory heap rebuild start: trigger_id={memory.id}, count={len(self.memories)}")
         self.memory_heap = []
         for mem in self.memories:
             priority = self._calculate_priority(mem)
             heapq.heappush(self.memory_heap, (priority, mem.timestamp, mem))
-
+        log.debug(f"✅ WorkingMemory heap rebuild done: heap_size={len(self.memory_heap)}")

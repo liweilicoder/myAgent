@@ -264,14 +264,14 @@ class QdrantVectorStore:
                        for i in range(len(vectors))]
 
             # 构建点数据
-            log.info(f"[Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
+            log.info(f"🧲 [Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
             points = []
             for i, (vector, meta, point_id) in enumerate(zip(vectors, metadata, ids)):
                 # 确保向量是正确的维度
                 try:
                     vlen = len(vector)
                 except Exception:
-                    log.error(f"[Qdrant] 非法向量类型: index={i} type={type(vector)} value={vector}")
+                    log.error(f"❌ [Qdrant] 非法向量类型: index={i} type={type(vector)} value={vector}")
                     continue
                 if vlen != self.vector_size:
                     log.warn(f"⚠️ 向量维度不匹配: 期望{self.vector_size}, 实际{len(vector)}")
@@ -310,13 +310,12 @@ class QdrantVectorStore:
                 return False
 
             # 批量插入
-            log.info(f"[Qdrant] upsert begin: points={len(points)}")
+            log.info(f" 1️⃣ [Qdrant] upsert begin: points={len(points)}")
             operation_info = self.client.upsert(
                 collection_name=self.collection_name,
                 points=points,
                 wait=True
             )
-            log.info("[Qdrant] upsert done")
 
             log.success(f"✅ 成功添加 {len(points)} 个向量到Qdrant")
             return True
@@ -345,6 +344,10 @@ class QdrantVectorStore:
             List[Dict]: 搜索结果
         """
         try:
+            log.info(
+                f"🔍 [Qdrant] search_similar start: collection={self.collection_name}, "
+                f"limit={limit}, threshold={score_threshold}, where={where}"
+            )
             if len(query_vector) != self.vector_size:
                 log.error(f"❌ 查询向量维度错误: 期望{self.vector_size}, 实际{len(query_vector)}")
                 return []
@@ -372,9 +375,10 @@ class QdrantVectorStore:
                 search_params = models.SearchParams(hnsw_ef=self.search_ef, exact=self.search_exact)
             except Exception:
                 search_params = None
-            search_result = self.client.search(
+
+            search_response = self.client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=query_filter,
                 limit=limit,
                 score_threshold=score_threshold,
@@ -382,6 +386,7 @@ class QdrantVectorStore:
                 with_vectors=False,
                 search_params=search_params
             )
+            search_result = search_response.points
 
             # 转换结果格式
             results = []
@@ -393,7 +398,7 @@ class QdrantVectorStore:
                 }
                 results.append(result)
 
-            log.debug(f"🔍 Qdrant搜索返回 {len(results)} 个结果")
+            log.success(f"🔍 Qdrant搜索完成: collection={self.collection_name}, returned={len(results)}")
             return results
 
         except Exception as e:
@@ -412,8 +417,10 @@ class QdrantVectorStore:
         """
         try:
             if not ids:
+                log.info("⏭️ [Qdrant] delete_vectors skipped: empty ids")
                 return True
 
+            log.info(f"🧹 [Qdrant] delete_vectors start: collection={self.collection_name}, ids={len(ids)}")
             operation_info = self.client.delete(
                 collection_name=self.collection_name,
                 points_selector=models.PointIdsList(
@@ -437,6 +444,7 @@ class QdrantVectorStore:
             bool: 是否成功
         """
         try:
+            log.info(f"🧹 [Qdrant] clear_collection start: collection={self.collection_name}")
             # 删除并重新创建集合
             self.client.delete_collection(collection_name=self.collection_name)
             self._ensure_collection()
@@ -457,7 +465,9 @@ class QdrantVectorStore:
         """
         try:
             if not memory_ids:
+                log.info("⏭️ [Qdrant] delete_memories skipped: empty ids")
                 return
+            log.info(f"🧹 [Qdrant] delete_memories start: collection={self.collection_name}, memory_ids={len(memory_ids)}")
             # 构建 should 过滤条件：memory_id 等于任一给定值
             conditions = [
                 FieldCondition(key="memory_id", match=MatchValue(value=mid))
@@ -483,13 +493,14 @@ class QdrantVectorStore:
         """
         try:
             collection_info = self.client.get_collection(self.collection_name)
+            points_count = getattr(collection_info, "points_count", 0)
 
             info = {
                 "name": self.collection_name,
-                "vectors_count": collection_info.vectors_count,
-                "indexed_vectors_count": collection_info.indexed_vectors_count,
-                "points_count": collection_info.points_count,
-                "segments_count": collection_info.segments_count,
+                "vectors_count": getattr(collection_info, "vectors_count", points_count),
+                "indexed_vectors_count": getattr(collection_info, "indexed_vectors_count", 0),
+                "points_count": points_count,
+                "segments_count": getattr(collection_info, "segments_count", 0),
                 "config": {
                     "vector_size": self.vector_size,
                     "distance": self.distance.value,
