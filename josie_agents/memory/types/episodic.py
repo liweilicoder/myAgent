@@ -74,6 +74,21 @@ class EpisodicMemory(BaseMemory):
         self.vector_store = QdrantConnectionManager.get_instance(**qdrant_config)
         log.success(f"🎉 Episodic Memory Initialized! db_path={db_path}")
 
+    def _to_json_safe_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """转换为SQLite JSON properties可保存的元数据。"""
+        def convert(value):
+            if value is None or isinstance(value, (str, int, float, bool)):
+                return value
+            if isinstance(value, datetime):
+                return value.isoformat()
+            if isinstance(value, dict):
+                return {key: convert(item) for key, item in value.items()}
+            if isinstance(value, (list, tuple, set)):
+                return [convert(item) for item in value]
+            return str(value)
+
+        return convert(metadata or {})
+
     def add(self, memory_item: MemoryItem) -> str:
         """添加情景记忆"""
         log.info(
@@ -126,7 +141,7 @@ class EpisodicMemory(BaseMemory):
             memory_type="episodic",
             timestamp=ts_int,
             importance=memory_item.importance,
-            properties=episode_metadata
+            properties=self._to_json_safe_metadata(episode_metadata)
         )
         log.info(f"✅ EpisodicMemory SQLite add done: id={memory_item.id}")
 
@@ -327,6 +342,12 @@ class EpisodicMemory(BaseMemory):
                 if importance is not None:
                     episode.importance = importance
                 if metadata is not None:
+                    if not hasattr(episode, "metadata"):
+                        episode.metadata = {
+                            "session_id": episode.session_id,
+                            "context": episode.context,
+                            "outcome": episode.outcome
+                        }
                     episode.metadata.update(metadata)
                     episode.context.update(metadata.get("context") or {})
                     episode.metadata["context"] = episode.context
@@ -343,7 +364,7 @@ class EpisodicMemory(BaseMemory):
             memory_id=memory_id,
             content=content,
             importance=importance,
-            properties=metadata
+            properties=self._to_json_safe_metadata(metadata) if metadata is not None else None
         )
         log.info(f"💾 EpisodicMemory SQLite update done: id={memory_id}, updated={doc_updated}")
 
