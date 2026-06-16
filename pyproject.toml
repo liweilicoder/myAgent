@@ -16,7 +16,6 @@ dependencies = [
     "cryptography>=48.0.0",
     "dashscope>=1.25.20",
     "dotenv>=0.9.9",
-    "gliner>=0.2.24",
     "h11>=0.16.0",
     "httpcore>=1.0.9",
     "httpx>=0.28.1",

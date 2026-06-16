@@ -45,6 +45,9 @@ def success(msg: str, color_msg: bool = True):
 def debug(msg: str, color_msg: bool = True):
     print(_colored("Debug", GRAY, msg, color_msg))
 
+def test(msg: str, color_msg: bool = True):
+    print(_colored("TEST", CYAN, msg, color_msg))
+
 def stream(msg: str):
     """流式输出，不换行，立即显示"""
     print(f"{GRAY}{msg}{RESET}", end="", flush=True)

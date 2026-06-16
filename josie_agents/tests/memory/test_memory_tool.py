@@ -9,7 +9,7 @@ from josie_agents.tools.builtin.memory_tool import MemoryTool
 
 def create_memory_tool():
     log.delimiter("🧠 MemoryTool基础操作演示")
-
+    log.delimiter("=="*50)
     # 初始化MemoryTool
     memory_tool = MemoryTool(
         user_id="jesse",
@@ -23,7 +23,7 @@ def create_memory_tool():
 def test_add_memory(memory_tool):
     """添加记忆演示 - 模拟人类记忆编码过程"""
     log.delimiter("📝 添加记忆演示")
-    log.delimiter("-" * 30)
+    log.delimiter("=="*50)
 
     # 添加工作记忆
     result = memory_tool.run({
@@ -72,7 +72,7 @@ def test_add_memory(memory_tool):
 def test_search_memory(memory_tool):
     """搜索记忆演示 - 实现语义理解的检索"""
     log.delimiter("🔍 搜索记忆演示")
-    log.delimiter("-" * 30)
+    log.delimiter("==" * 50)
 
     # 基础搜索
     log.info("基础搜索 - '记忆系统':")
@@ -103,7 +103,7 @@ def test_search_memory(memory_tool):
 def test_memory_summary(memory_tool):
     """记忆摘要演示 - 提供系统全貌"""
     log.delimiter("📋 记忆摘要演示")
-    log.delimiter("-" * 30)
+    log.delimiter("=="*50)
 
     # 获取记忆摘要
     result = memory_tool.run({"action": "summary", "limit": 5})
@@ -119,7 +119,7 @@ def test_memory_summary(memory_tool):
 def test_memory_management(memory_tool):
     """记忆管理演示 - 遗忘和整合"""
     log.delimiter("⚙️ 记忆管理演示")
-    log.delimiter("-" * 30)
+    log.delimiter("==" * 50)
 
     # 添加一个低重要性记忆用于遗忘测试
     memory_tool.run({
@@ -167,10 +167,10 @@ if __name__ == "__main__":
         test_search_memory(memory_tool)
 
         # 4. 记忆摘要演示
-        #test_memory_summary(memory_tool)
+        test_memory_summary(memory_tool)
 
         # 5. 记忆管理演示
-        #test_memory_management(memory_tool)
+        test_memory_management(memory_tool)
 
         test_clear_memory(memory_tool)
 

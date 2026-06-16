@@ -98,7 +98,7 @@ flowchart TD
     S --> T["初始化 self.entities = {}"]
     T --> U["初始化 self.relations = []"]
     U --> V["_init_nlp"]
-    V --> W["尝试加载 zh_core_web_sm / en_core_web_sm"]
+    V --> W["尝试加载 zh_core_web_md / en_core_web_md"]
     W --> X["选择主 self.nlp"]
     X --> Y["初始化 semantic_memories / memory_embeddings"]
 ```
@@ -305,8 +305,8 @@ flowchart TD
 flowchart TD
     A["_extract_entities(text)"] --> B["_detect_language(text)"]
     B --> C{"语言和模型可用性"}
-    C -->|"zh + zh_core_web_sm"| D["selected_nlp = 中文模型"]
-    C -->|"en + en_core_web_sm"| E["selected_nlp = 英文模型"]
+    C -->|"zh + zh_core_web_md"| D["selected_nlp = 中文模型"]
+    C -->|"en + en_core_web_md"| E["selected_nlp = 英文模型"]
     C -->|"其他"| F["selected_nlp = self.nlp"]
     D --> G{"selected_nlp 存在?"}
     E --> G
@@ -318,7 +318,12 @@ flowchart TD
     K --> L["Entity(entity_id='entity_'+hash(ent.text), name, label)"]
     L --> M["append entities"]
     M --> K
-    K --> N["返回 entities"]
+    K --> N{"lang == zh?"}
+    N -->|是| O["_extract_spacy_rule_concepts(doc)"]
+    O --> P["append rule_entities"]
+    N -->|否| Q["_merge_extracted_entities(entities)"]
+    P --> Q
+    Q --> R["返回 entities"]
     I -.异常.-> H
 ```
 
@@ -777,8 +782,8 @@ flowchart TD
     J --> K["graph_store.health_check()"]
     K --> L["entities = {}; relations = []"]
     L --> M["_init_nlp()"]
-    M --> N["try load zh_core_web_sm"]
-    N --> O["try load en_core_web_sm"]
+    M --> N["try load zh_core_web_md"]
+    N --> O["try load en_core_web_md"]
     O --> P["选择 self.nlp，失败则 None"]
     P --> Q["semantic_memories = []"]
     Q --> R["memory_embeddings = {}"]

@@ -82,16 +82,6 @@ class SemanticMemory(BaseMemory):
     - 混合检索策略：向量+图+语义推理
     """
 
-    _GLINER_MODEL_NAME = "urchade/gliner_multi"
-    _GLINER_LABELS = [
-        "domain concept",
-        "technical term",
-        "method",
-        "tool",
-        "system component"
-    ]
-    _GLINER_THRESHOLD = 0.45
-
     def __init__(self, config: MemoryConfig, storage_backend=None):
         super().__init__(config, storage_backend)
 
@@ -111,9 +101,6 @@ class SemanticMemory(BaseMemory):
         # 实体识别器
         self.nlp = None
         self._init_nlp()
-        self.gliner_model = None
-        self.gliner_available = False
-        self._init_gliner()
 
         # 记忆存储
         self.semantic_memories: List[MemoryItem] = []
@@ -177,8 +164,8 @@ class SemanticMemory(BaseMemory):
 
             # 尝试加载多语言模型
             models_to_try = [
-                ("zh_core_web_sm", "中文"),
-                ("en_core_web_sm", "英文")
+                ("zh_core_web_md", "中文"),
+                ("en_core_web_md", "英文")
             ]
 
             loaded_models = []
@@ -192,11 +179,11 @@ class SemanticMemory(BaseMemory):
                     log.warn(f"⚠️ {lang_name}spaCy模型不可用: {model_name}")
 
             # 设置主要NLP处理器
-            if "zh_core_web_sm" in self.nlp_models:
-                self.nlp = self.nlp_models["zh_core_web_sm"]
+            if "zh_core_web_md" in self.nlp_models:
+                self.nlp = self.nlp_models["zh_core_web_md"]
                 log.info("🎯 主要使用中文spaCy模型")
-            elif "en_core_web_sm" in self.nlp_models:
-                self.nlp = self.nlp_models["en_core_web_sm"]
+            elif "en_core_web_md" in self.nlp_models:
+                self.nlp = self.nlp_models["en_core_web_md"]
                 log.info("🎯 主要使用英文spaCy模型")
             else:
                 self.nlp = None
@@ -209,22 +196,6 @@ class SemanticMemory(BaseMemory):
             log.warn("⚠️ spaCy不可用，实体提取将受限")
             self.nlp = None
             self.nlp_models = {}
-
-    def _init_gliner(self):
-        """初始化GLiNER概念抽取器，失败时自动降级。"""
-        self.gliner_model = None
-        self.gliner_available = False
-
-        try:
-            from gliner import GLiNER
-
-            self.gliner_model = GLiNER.from_pretrained(self._GLINER_MODEL_NAME)
-            self.gliner_available = True
-            log.info(f"✅ 加载GLiNER模型: {self._GLINER_MODEL_NAME}")
-        except ImportError:
-            log.warn("⚠️ GLiNER不可用：未安装gliner包，实体抽取将降级为spaCy")
-        except Exception as e:
-            log.warn(f"⚠️ GLiNER模型加载失败，实体抽取将降级为spaCy: {e}")
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加语义记忆"""
@@ -585,6 +556,10 @@ class SemanticMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined_score = base_relevance * importance_weight
+            log.info(f"""🧮 SemanticMemory{result}
+            \t (1) final_score({combined_score:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+            \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({importance:.2f})*0.4
+            \t (3) base_relevance({base_relevance:.2f}) = vector_score({vector_score:.2f})*0.7 + graph_score({graph_score:.2f})*0.3""")
 
             # 调试信息：查看分数分解
             result["debug_info"] = {
@@ -634,8 +609,7 @@ class SemanticMemory(BaseMemory):
         """智能多语言实体提取"""
         lang = self._detect_language(text)
         spacy_entities, _ = self._extract_spacy_entities(text, lang)
-        gliner_entities = self._extract_gliner_entities(text)
-        return self._merge_extracted_entities(spacy_entities, gliner_entities)
+        return self._merge_extracted_entities(spacy_entities)
 
     def _extract_spacy_entities(self, text: str, lang: str) -> tuple[List[Entity], Any]:
         """使用spaCy提取NER实体和规则概念，并保留词法分析副作用。"""
@@ -643,10 +617,10 @@ class SemanticMemory(BaseMemory):
         # 选择合适的spaCy模型
         selected_nlp = None
         nlp_models = getattr(self, "nlp_models", {})
-        if lang == "zh" and "zh_core_web_sm" in nlp_models:
-            selected_nlp = nlp_models["zh_core_web_sm"]
-        elif lang == "en" and "en_core_web_sm" in nlp_models:
-            selected_nlp = nlp_models["en_core_web_sm"]
+        if lang == "zh" and "zh_core_web_md" in nlp_models:
+            selected_nlp = nlp_models["zh_core_web_md"]
+        elif lang == "en" and "en_core_web_md" in nlp_models:
+            selected_nlp = nlp_models["en_core_web_md"]
         else:
             # 使用默认模型
             selected_nlp = getattr(self, "nlp", None)
@@ -704,7 +678,7 @@ class SemanticMemory(BaseMemory):
         return entities, None
 
     def _extract_spacy_rule_concepts(self, doc) -> List[Entity]:
-        """基于中文依存结构抽取泛化概念短语，作为GLiNER不可用时的兜底。"""
+        """基于中文依存结构抽取泛化概念短语。"""
         concept_candidates = []
         content_pos = {"NOUN", "PROPN", "ADJ"}
         modifier_deps = {"compound:nn", "amod", "acl"}
@@ -762,50 +736,10 @@ class SemanticMemory(BaseMemory):
 
         return entities
 
-    def _extract_gliner_entities(self, text: str) -> List[Entity]:
-        """使用GLiNER抽取自定义标签概念，失败时返回空列表。"""
-        if not getattr(self, "gliner_available", False) or not getattr(self, "gliner_model", None):
-            return []
-
-        try:
-            raw_entities = self.gliner_model.predict_entities(
-                text,
-                self._GLINER_LABELS,
-                threshold=self._GLINER_THRESHOLD
-            )
-        except Exception as e:
-            log.warn(f"⚠️ GLiNER实体识别失败，已跳过: {e}")
-            return []
-
-        entities = []
-        for item in raw_entities:
-            name = (item.get("text") or item.get("entity") or "").strip()
-            if not name:
-                continue
-            entity = Entity(
-                entity_id=self._stable_concept_id(name),
-                name=name,
-                entity_type="CONCEPT",
-                description=f"GLiNER识别的概念实体: {name}",
-                properties={
-                    "source": "gliner",
-                    "gliner_label": item.get("label", ""),
-                    "score": item.get("score", 0.0),
-                    "start": item.get("start"),
-                    "end": item.get("end")
-                }
-            )
-            entities.append(entity)
-            log.debug(f"🧠 GLiNER识别概念: '{name}' -> {item.get('label', '')} ({item.get('score', 0.0):.3f})")
-
-        return entities
-
     def _merge_extracted_entities(self, *entity_groups: List[Entity]) -> List[Entity]:
-        """合并spaCy、spaCy规则和GLiNER结果，按名称去重并去掉概念碎片。"""
+        """合并spaCy NER和spaCy规则结果，按名称去重并去掉概念碎片。"""
         def priority(entity: Entity) -> int:
             source = entity.properties.get("source")
-            if source == "gliner" and entity.entity_type == "CONCEPT":
-                return 3
             if source == "spacy_rule" and entity.entity_type == "CONCEPT":
                 return 2
             return 1
@@ -838,7 +772,7 @@ class SemanticMemory(BaseMemory):
         return filtered
 
     def _stable_concept_id(self, name: str) -> str:
-        """为规则和GLiNER概念生成稳定ID。"""
+        """为规则概念生成稳定ID。"""
         entity_id = hashlib.sha1(name.encode("utf-8")).hexdigest()[:16]
         return f"concept_{entity_id}"
 

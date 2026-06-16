@@ -338,7 +338,7 @@ class MemoryManager:
             stats["total_memories"] += type_stats.get("count", 0)
             log.debug(f"📊 {memory_type} 统计: count={type_stats.get('count', 0)}")
 
-        log.info(f"📊 记忆统计完成: total={stats['total_memories']}")
+        log.info(f"📊 记忆统计完成-汇总: total={stats['total_memories']}, stats={stats}")
         return stats
 
     def clear_all_memories(self):

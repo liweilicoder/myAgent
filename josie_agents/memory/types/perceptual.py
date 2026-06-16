@@ -273,6 +273,11 @@ class PerceptualMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined = base_relevance * importance_weight
+            log.info(f"""🧮 PerceptualMemory{doc}
+            \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+            \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({imp:.2f})*0.4
+            \t (3) base_relevance({base_relevance:.2f}) = vector_score({vec_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
+            \t (4) recency_score({recency_score:.2f}) = 1 / (1 + age_days({age_days:.2f}))""")
 
             item = MemoryItem(
                 id=doc["memory_id"],
@@ -294,12 +299,18 @@ class PerceptualMemory(BaseMemory):
                 if target_modality and m.metadata.get("modality") != target_modality:
                     continue
                 if query.lower() in (m.content or "").lower():
-                    recency_score = 1.0 / (1.0 + max(0.0, (now_ts - int(m.timestamp.timestamp())) / 86400.0))
+                    age_days = max(0.0, (now_ts - int(m.timestamp.timestamp())) / 86400.0)
+                    recency_score = 1.0 / (1.0 + age_days)
                     # 回退匹配：新评分算法
                     keyword_score = 0.5  # 简单关键词匹配的基础分数
                     base_relevance = keyword_score * 0.8 + recency_score * 0.2
                     importance_weight = 0.8 + (m.importance * 0.4)
                     combined = base_relevance * importance_weight
+                    log.info(f"""🧮 PerceptualMemory fallback{m}
+                    \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+                    \t (2) importance_weight({importance_weight:.2f})=0.8 + memory.importance({m.importance:.2f})*0.4
+                    \t (3) base_relevance({base_relevance:.2f}) = keyword_score({keyword_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
+                    \t (4) recency_score({recency_score:.2f}) = 1 / (1 + age_days({age_days:.2f}))""")
                     results.append((combined, m))
 
         results.sort(key=lambda x: x[0], reverse=True)

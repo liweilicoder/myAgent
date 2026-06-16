@@ -21,7 +21,8 @@ class Episode:
         content: str,
         context: Dict[str, Any],
         outcome: Optional[str] = None,
-        importance: float = 0.5
+        importance: float = 0.5,
+        metadata: Optional[Dict[str, Any]] = None
     ):
         self.episode_id = episode_id
         self.user_id = user_id
@@ -31,6 +32,7 @@ class Episode:
         self.context = context
         self.outcome = outcome
         self.importance = importance
+        self.metadata = metadata or {}
 
 
 class EpisodicMemory(BaseMemory):
@@ -78,12 +80,20 @@ class EpisodicMemory(BaseMemory):
             f"📝 EpisodicMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
             f"importance={memory_item.importance:.2f}, metadata_keys={list(memory_item.metadata.keys())}"
         )
-        # 从元数据中提取情景信息
-        session_id = memory_item.metadata.get("session_id", "default_session")
-        context = memory_item.metadata.get("context", {})
-        outcome = memory_item.metadata.get("outcome")
-        participants = memory_item.metadata.get("participants", [])
-        tags = memory_item.metadata.get("tags", [])
+        # 从元数据中提取情景信息，并保留调用方传入的完整metadata
+        episode_metadata = dict(memory_item.metadata or {})
+        session_id = episode_metadata.get("session_id", "default_session")
+        context = episode_metadata.get("context") or {}
+        outcome = episode_metadata.get("outcome")
+        participants = episode_metadata.get("participants") or []
+        tags = episode_metadata.get("tags") or []
+        episode_metadata.update({
+            "session_id": session_id,
+            "context": context,
+            "outcome": outcome,
+            "participants": participants,
+            "tags": tags
+        })
 
         # 创建情景（内存缓存）
         episode = Episode(
@@ -94,7 +104,8 @@ class EpisodicMemory(BaseMemory):
             content=memory_item.content,
             context=context,
             outcome=outcome,
-            importance=memory_item.importance
+            importance=memory_item.importance,
+            metadata=episode_metadata
         )
         self.episodes.append(episode)
         if session_id not in self.sessions:
@@ -115,13 +126,7 @@ class EpisodicMemory(BaseMemory):
             memory_type="episodic",
             timestamp=ts_int,
             importance=memory_item.importance,
-            properties={
-                "session_id": session_id,
-                "context": context,
-                "outcome": outcome,
-                "participants": participants,
-                "tags": tags
-            }
+            properties=episode_metadata
         )
         log.info(f"✅ EpisodicMemory SQLite add done: id={memory_item.id}")
 
@@ -238,6 +243,11 @@ class EpisodicMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined = base_relevance * importance_weight
+            log.info(f"""🧮 EpisodicMemory{doc}
+            \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+            \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({imp:.2f})*0.4
+            \t (3) base_relevance({base_relevance:.2f}) = vector_score({vec_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
+            \t (4) recency_score({recency_score:.2f}) = 1 / (1 + age_days({age_days:.2f}))""")
 
             item = MemoryItem(
                 id=doc["memory_id"],
@@ -263,12 +273,18 @@ class EpisodicMemory(BaseMemory):
             query_lower = query.lower()
             for ep in self._filter_episodes(user_id, session_id, time_range):
                 if query_lower in ep.content.lower():
-                    recency_score = 1.0 / (1.0 + max(0.0, (now_ts - int(ep.timestamp.timestamp())) / 86400.0))
+                    age_days = max(0.0, (now_ts - int(ep.timestamp.timestamp())) / 86400.0)
+                    recency_score = 1.0 / (1.0 + age_days)
                     # 回退匹配：新评分算法
                     keyword_score = 0.5  # 简单关键词匹配的基础分数
                     base_relevance = keyword_score * 0.8 + recency_score * 0.2
                     importance_weight = 0.8 + (ep.importance * 0.4)
                     combined = base_relevance * importance_weight
+                    log.info(f"""🧮 EpisodicMemory fallback{ep.__dict__}
+                    \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
+                    \t (2) importance_weight({importance_weight:.2f})=0.8 + episode.importance({ep.importance:.2f})*0.4
+                    \t (3) base_relevance({base_relevance:.2f}) = keyword_score({keyword_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
+                    \t (4) recency_score({recency_score:.2f}) = 1 / (1 + age_days({age_days:.2f}))""")
                     item = MemoryItem(
                         id=ep.episode_id,
                         content=ep.content,
@@ -311,9 +327,13 @@ class EpisodicMemory(BaseMemory):
                 if importance is not None:
                     episode.importance = importance
                 if metadata is not None:
-                    episode.context.update(metadata.get("context", {}))
+                    episode.metadata.update(metadata)
+                    episode.context.update(metadata.get("context") or {})
+                    episode.metadata["context"] = episode.context
                     if "outcome" in metadata:
                         episode.outcome = metadata["outcome"]
+                    episode.metadata["outcome"] = episode.outcome
+                    episode.metadata.setdefault("session_id", episode.session_id)
                 updated = True
                 break
         log.debug(f"📦 EpisodicMemory cache update done: id={memory_id}, updated={updated}")
@@ -465,6 +485,12 @@ class EpisodicMemory(BaseMemory):
         log.debug(f"📦 EpisodicMemory get_all start: count={len(self.episodes)}")
         memory_items = []
         for episode in self.episodes:
+            metadata = {
+                "session_id": episode.session_id,
+                "context": episode.context,
+                "outcome": episode.outcome,
+                **getattr(episode, "metadata", {})
+            }
             memory_item = MemoryItem(
                 id=episode.episode_id,
                 content=episode.content,
@@ -472,7 +498,7 @@ class EpisodicMemory(BaseMemory):
                 user_id=episode.user_id,
                 timestamp=episode.timestamp,
                 importance=episode.importance,
-                metadata=episode.metadata
+                metadata=metadata
             )
             memory_items.append(memory_item)
         return memory_items
