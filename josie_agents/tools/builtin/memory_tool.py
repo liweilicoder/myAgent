@@ -157,7 +157,7 @@ class MemoryTool(BaseTool):
                 auto_classify=False  # 禁用自动分类，使用明确指定的类型
             )
 
-            return f"✅ 记忆已添加 (ID: {memory_id[:8]}...)"
+            return f"✅ 记忆已添加 (ID: {memory_id[:100]}...)"
 
         except Exception as e:
             return f"❌ 添加记忆失败: {str(e)}"

@@ -91,7 +91,7 @@ class EpisodicMemory(BaseMemory):
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加情景记忆"""
-        log.info(
+        log.debug(
             f"📝 EpisodicMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
             f"importance={memory_item.importance:.2f}, metadata_keys={list(memory_item.metadata.keys())}"
         )
@@ -126,10 +126,7 @@ class EpisodicMemory(BaseMemory):
         if session_id not in self.sessions:
             self.sessions[session_id] = []
         self.sessions[session_id].append(episode.episode_id)
-        log.debug(
-            f"📦 EpisodicMemory cached episode: id={episode.episode_id}, "
-            f"session={session_id}, session_size={len(self.sessions[session_id])}"
-        )
+        log.debug(f"📦 EpisodicMemory cached episode: {episode}")
 
         # 1) 权威存储（SQLite）
         ts_int = int(memory_item.timestamp.timestamp())
@@ -177,8 +174,8 @@ class EpisodicMemory(BaseMemory):
         session_id = kwargs.get("session_id")
         time_range: Optional[Tuple[datetime, datetime]] = kwargs.get("time_range")
         min_importance: Optional[float] = kwargs.get("min_importance")
-        log.info(
-            f"🔍 EpisodicMemory retrieve start: query_len={len(query)}, limit={limit}, "
+        log.debug(
+            f"🔍 EpisodicMemory retrieve start: query=【{query}】, limit={limit}, "
             f"user_id={user_id}, session_id={session_id}, min_importance={min_importance}, "
             f"time_range={time_range}"
         )
@@ -197,11 +194,11 @@ class EpisodicMemory(BaseMemory):
                 limit=1000
             )
             candidate_ids = {d["memory_id"] for d in docs}
-            log.info(f"🎯 EpisodicMemory structured candidates: count={len(candidate_ids)}")
+            log.info(f"🎯 EpisodicMemory 基于时间/重要性从SQLite初筛：candidates: count={len(candidate_ids)}")
 
         # 向量检索（Qdrant）
         try:
-            log.debug("🔍 EpisodicMemory vector search start")
+            log.debug("🔍 EpisodicMemory 开始向量检索...")
             query_vec = self.embedder.encode(query)
             if hasattr(query_vec, "tolist"):
                 query_vec = query_vec.tolist()
@@ -213,7 +210,7 @@ class EpisodicMemory(BaseMemory):
                 limit=max(limit * 5, 20),
                 where=where
             )
-            log.info(f"✅ EpisodicMemory vector search done: hits={len(hits)}")
+            log.info(f"✅ EpisodicMemory 向量检索命中结果: hits={len(hits)}")
         except Exception as e:
             hits = []
             log.warn(f"⚠️ EpisodicMemory vector search failed, fallback may run: {e}")
@@ -231,11 +228,14 @@ class EpisodicMemory(BaseMemory):
             # 检查是否已遗忘
             episode = next((e for e in self.episodes if e.episode_id == mem_id), None)
             if episode and episode.context.get("forgotten", False):
+                log.warn(f"episode 已经被遗忘，跳过，episode={episode}")
                 continue  # 跳过已遗忘的记忆
 
             if candidate_ids is not None and mem_id not in candidate_ids:
+                log.warn(f"向量召回的episode 不在SQLite 候选名单中，跳过， episode={episode}")
                 continue
             if session_id and meta.get("session_id") != session_id:
+                log.warn(f"向量召回的episode 不属于本次session，跳过， episode={episode}, session_id={session_id}")
                 continue
 
             # 从权威库读取完整记录
@@ -283,7 +283,7 @@ class EpisodicMemory(BaseMemory):
 
         # 若向量检索无结果，回退到简单关键词匹配（内存缓存）
         if not results:
-            log.info(f"🔁 EpisodicMemory fallback keyword search start: cached={len(self.episodes)}")
+            log.info(f"🔁 EpisodicMemory 向量检索无结果，回退到简单关键词匹配（内存缓存）: cached={len(self.episodes)}")
             fallback = super()._generate_id  # 占位以避免未使用警告
             query_lower = query.lower()
             for ep in self._filter_episodes(user_id, session_id, time_range):

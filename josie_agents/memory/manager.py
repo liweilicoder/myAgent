@@ -31,7 +31,7 @@ class MemoryManager:
     ):
         self.config = config or MemoryConfig()
         self.user_id = user_id
-        log.info(
+        log.debug(
             f"🧠 MemoryManager开始初始化: user_id={self.user_id}, "
             f"working={enable_working}, episodic={enable_episodic}, "
             f"semantic={enable_semantic}, perceptual={enable_perceptual}"
@@ -81,7 +81,7 @@ class MemoryManager:
         Returns:
         记忆ID
         """
-        log.info(
+        log.debug(
             f"📝 开始添加记忆: requested_type={memory_type}, auto_classify={auto_classify}, "
             f"content_len={len(content)}, metadata_keys={list((metadata or {}).keys())}"
         )
@@ -113,7 +113,7 @@ class MemoryManager:
 
         # 添加到对应的记忆类型
         if memory_type in self.memory_types:
-            log.info(f"📤 分发记忆到 {memory_type}: id={memory_item.id}")
+            log.debug(f"📤 分发记忆到 {memory_type}: id={memory_item.id}")
             memory_id = self.memory_types[memory_type].add(memory_item)
             log.success(f"✅ 添加记忆到 {memory_type}: {memory_id}")
             return memory_id
@@ -144,7 +144,7 @@ class MemoryManager:
         if memory_types is None:
             memory_types = list(self.memory_types.keys())
 
-        log.info(
+        log.debug(
             f"🔍 开始检索记忆: query_len={len(query)}, memory_types={memory_types}, "
             f"limit={limit}, min_importance={min_importance}, time_range={time_range}"
         )
@@ -168,7 +168,7 @@ class MemoryManager:
                         time_range=time_range
                     )
                     all_results.extend(type_results)
-                    log.info(f"✅ {memory_type} 记忆检索完成: results={len(type_results)}")
+                    log.info(f"✅ {memory_type} 记忆检索完成: 共{len(type_results)}条召回")
                 except Exception as e:
                     log.warn(f"⚠️ 检索 {memory_type} 记忆时出错: {e}")
                     continue
@@ -178,7 +178,7 @@ class MemoryManager:
         # 按重要性和相关性排序
         all_results.sort(key=lambda x: x.importance, reverse=True)
         results = all_results[:limit]
-        log.success(f"✅ 记忆检索完成: merged={len(all_results)}, returned={len(results)}")
+        log.success(f"✅ 全部记忆检索完成: 共{len(all_results)}条记忆, 基于重要性排序返回前{len(results)}条")
         return results
 
     def update_memory(
@@ -250,7 +250,7 @@ class MemoryManager:
         Returns:
             遗忘的记忆数量
         """
-        log.info(f"🧹 开始执行记忆遗忘: strategy={strategy}, threshold={threshold}, max_age_days={max_age_days}")
+        log.debug(f"🧹 开始执行记忆遗忘: strategy={strategy}, threshold={threshold}, max_age_days={max_age_days}")
         total_forgotten = 0
 
         for memory_type, memory_instance in self.memory_types.items():
@@ -262,7 +262,7 @@ class MemoryManager:
             else:
                 log.warn(f"⚠️ {memory_type} 不支持遗忘接口")
 
-        log.info(f"✅ 记忆遗忘完成: {total_forgotten} 条记忆")
+        log.success(f"✅ 所有记忆遗忘完成: 共{total_forgotten} 条记忆")
         return total_forgotten
 
     def consolidate_memories(

@@ -174,23 +174,23 @@ class SemanticMemory(BaseMemory):
                     nlp = spacy.load(model_name)
                     self.nlp_models[model_name] = nlp
                     loaded_models.append(lang_name)
-                    log.info(f"✅ 加载{lang_name}spaCy模型: {model_name}")
+                    log.debug(f"✅ 加载{lang_name}spaCy模型: {model_name}")
                 except OSError:
                     log.warn(f"⚠️ {lang_name}spaCy模型不可用: {model_name}")
 
             # 设置主要NLP处理器
             if "zh_core_web_md" in self.nlp_models:
                 self.nlp = self.nlp_models["zh_core_web_md"]
-                log.info("🎯 主要使用中文spaCy模型")
+                log.debug("🎯 主要使用中文spaCy模型")
             elif "en_core_web_md" in self.nlp_models:
                 self.nlp = self.nlp_models["en_core_web_md"]
-                log.info("🎯 主要使用英文spaCy模型")
+                log.debug("🎯 主要使用英文spaCy模型")
             else:
                 self.nlp = None
                 log.warn("⚠️ 无可用spaCy模型，实体提取将受限")
 
             if loaded_models:
-                log.info(f"📚 可用语言模型: {', '.join(loaded_models)}")
+                log.debug(f"📚 可用语言模型: {', '.join(loaded_models)}")
 
         except ImportError:
             log.warn("⚠️ spaCy不可用，实体提取将受限")

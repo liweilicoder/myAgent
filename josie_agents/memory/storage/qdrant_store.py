@@ -186,9 +186,9 @@ class QdrantVectorStore:
                     ),
                     hnsw_config=hnsw_cfg
                 )
-                log.success(f"✅ 创建Qdrant集合: {self.collection_name}")
+                log.info(f"✅ 创建Qdrant集合: {self.collection_name}")
             else:
-                log.success(f"✅ 使用现有Qdrant集合: {self.collection_name}, 并更新HNSW配置")
+                log.info(f"✅ 使用现有Qdrant集合: {self.collection_name}, 并更新HNSW配置")
                 # 尝试更新 HNSW 配置
                 try:
                     self.client.update_collection(
@@ -232,9 +232,9 @@ class QdrantVectorStore:
                     # 索引已存在会报错，忽略
                     log.debug(f"索引 {field_name} 已存在或创建失败: {ie}")
 
-            log.success("✅创建payload索引完成")
+            log.info("✅ Qdrant 创建payload索引完成")
         except Exception as e:
-            log.debug(f"创建payload索引时出错: {e}")
+            log.debug(f" Qdrant 创建payload索引时出错: {e}")
 
     def add_vectors(
         self,

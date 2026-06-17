@@ -38,7 +38,7 @@ class WorkingMemory(BaseMemory):
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加工作记忆"""
-        log.info(
+        log.debug(
             f"📝 WorkingMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
             f"importance={memory_item.importance:.2f}, count={len(self.memories)}, tokens={self.current_tokens}"
         )
@@ -65,9 +65,9 @@ class WorkingMemory(BaseMemory):
 
     def retrieve(self, query: str, limit: int = 5, user_id: str = None, **kwargs) -> List[MemoryItem]:
         """检索工作记忆 - 混合语义向量检索和关键词匹配"""
-        log.info(
-            f"🔍 WorkingMemory retrieve start: query_len={len(query)}, limit={limit}, "
-            f"user_id={user_id}, count={len(self.memories)}"
+        log.debug(
+            f"🔍 WorkingMemory retrieve start: query=【{query}】, limit={limit}, "
+            f"user_id={user_id}, total_memory_count={len(self.memories)}"
         )
         # 清理过期的记忆， 防止已经遗忘的记忆被召回
         self._expire_old_memories()
@@ -79,7 +79,7 @@ class WorkingMemory(BaseMemory):
         filtered_memories = self.memories
         if user_id:
             filtered_memories = [m for m in self.memories if m.user_id == user_id]
-        log.debug(f"🎯 WorkingMemory filter done: filtered={len(filtered_memories)}")
+        log.debug(f"🎯 WorkingMemory filter by user_id done: before_filtered={len(self.memories)},after_filtered={len(filtered_memories)}")
 
         if not filtered_memories:
             log.info("🕳️ WorkingMemory retrieve done: no memories after user filter")
@@ -113,7 +113,6 @@ class WorkingMemory(BaseMemory):
             # 存储向量分数
             for i, memory in enumerate(filtered_memories):
                 vector_scores[memory.id] = similarities[i]
-            log.info(f"🧮 WorkingMemory vector score done: scored={len(vector_scores)}")
 
         except Exception as e:
             # 如果向量检索失败，回退到关键词匹配
@@ -206,7 +205,7 @@ class WorkingMemory(BaseMemory):
 
     def remove(self, memory_id: str) -> bool:
         """删除工作记忆"""
-        log.info(f"🧹 WorkingMemory remove start: id={memory_id}, count={len(self.memories)}")
+        log.debug(f"🧹 WorkingMemory remove start: id={memory_id}, count={len(self.memories)}")
         for i, memory in enumerate(self.memories):
             if memory.id == memory_id:
                 removed_memory = self.memories.pop(i)
@@ -310,7 +309,7 @@ class WorkingMemory(BaseMemory):
 
     def forget(self, strategy: str = "importance_based", threshold: float = 0.1, max_age_days: int = 1) -> int:
         """工作记忆遗忘机制"""
-        log.info(
+        log.debug(
             f"🧹 WorkingMemory forget start: strategy={strategy}, threshold={threshold}, "
             f"max_age_days={max_age_days}, count={len(self.memories)}"
         )
@@ -372,10 +371,10 @@ class WorkingMemory(BaseMemory):
     def _calculate_time_decay(self, timestamp: datetime) -> float:
         """计算时间衰减因子"""
         time_diff = datetime.now() - timestamp
-        passed_30min_cnt = time_diff.total_seconds() / 1800
+        passed_hour_cnt = time_diff.total_seconds() / 3600
 
         # 指数衰减（工作记忆衰减更快）
-        decay_factor = self.config.decay_factor ** passed_30min_cnt  # 每30min衰减
+        decay_factor = self.config.decay_factor ** passed_hour_cnt  # 每1h衰减
         return max(0.1, decay_factor)  # 最小保持10%的权重
 
     def _enforce_capacity_limits(self):
@@ -425,7 +424,7 @@ class WorkingMemory(BaseMemory):
         while self.memory_heap:
             priority, timestamp, memory = heapq.heappop(self.memory_heap)
             if self.has_memory(memory.id):
-                log.info(f"🧹 WorkingMemory remove lowest priority: id={memory.id}, priority={priority:.4f}")
+                log.debug(f"🧹 WorkingMemory remove lowest priority: id={memory.id}, priority={priority:.4f}")
                 self.remove(memory.id)
                 return
         log.warn("⚠️ WorkingMemory remove lowest priority skipped: heap empty")
