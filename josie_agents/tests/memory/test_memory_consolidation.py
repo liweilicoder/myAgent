@@ -174,7 +174,7 @@ class MemoryConsolidationDemo:
                                               "query": "特殊记忆",
                                               "memory_type": "episodic",
                                               "limit": 1})
-        log.test(search_result)
+        log.test(f"【特殊记忆】的搜索结果：{search_result}")
 
     def demonstrate_multi_type_consolidation(self):
         """演示多类型记忆整合"""
@@ -284,7 +284,7 @@ class MemoryConsolidationDemo:
             result = self.memory_tool.run({"action": "search",
                                            "query": query,
                                            "limit": 3})
-            log.test(result)
+            log.test(f"【{query}】的搜索结果：{result}")
 
     def cleanup(self):
         log.delimiter("清空全部记忆，清理测试环境")

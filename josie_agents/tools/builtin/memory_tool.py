@@ -224,10 +224,24 @@ class MemoryTool(BaseTool):
         """获取记忆摘要"""
         try:
             stats = self.memory_manager.get_memory_stats()
+            memories_by_type = stats.get("memories_by_type", {})
+            memory_counts = {
+                "working": memories_by_type.get("working", {}).get("count", 0),
+                "episodic": memories_by_type.get("episodic", {}).get("count", 0),
+                "semantic": memories_by_type.get("semantic", {}).get("count", 0),
+                "perceptual": memories_by_type.get("perceptual", {}).get("count", 0),
+            }
 
             summary_parts = [
                 f"📊 记忆系统摘要",
                 f"总记忆数: {stats['total_memories']}",
+                (
+                    "分类记忆数: "
+                    f"工作记忆 {memory_counts['working']} 条, "
+                    f"情景记忆 {memory_counts['episodic']} 条, "
+                    f"语义记忆 {memory_counts['semantic']} 条, "
+                    f"感知记忆 {memory_counts['perceptual']} 条"
+                ),
                 f"当前会话: {self.current_session_id or '未开始'}",
                 f"对话轮次: {self.conversation_count}"
             ]
@@ -292,11 +306,16 @@ class MemoryTool(BaseTool):
         """获取统计信息"""
         try:
             stats = self.memory_manager.get_memory_stats()
+            memories_by_type = stats.get("memories_by_type", {})
+            enabled_type_counts = [
+                f"{memory_type}({memories_by_type.get(memory_type, {}).get('count', 0)})"
+                for memory_type in stats["enabled_types"]
+            ]
 
             stats_info = [
                 f"📈 记忆系统统计",
                 f"总记忆数: {stats['total_memories']}",
-                f"启用的记忆类型: {', '.join(stats['enabled_types'])}",
+                f"启用的记忆类型: {', '.join(enabled_type_counts)}",
                 f"会话ID: {self.current_session_id or '未开始'}",
                 f"对话轮次: {self.conversation_count}"
             ]
