@@ -12,6 +12,9 @@ from josie_agents.memory.storage.qdrant_store import QdrantConnectionManager, Qd
 import josie_agents.utils.log as log
 from transformers import CLIPModel, CLIPProcessor, ClapProcessor, ClapModel
 from PIL import Image
+import librosa
+import tempfile
+import numpy as np
 
 class Perception:
     """感知数据实体"""
@@ -143,8 +146,9 @@ class PerceptualMemory(BaseMemory):
         """添加感知记忆（SQLite权威 + Qdrant向量）"""
         modality = memory_item.metadata.get("modality", "text")
         raw_data = memory_item.metadata.get("raw_data", memory_item.content)
+        content_id = memory_item.content[:20] + '...'
         log.info(
-            f"📝 PerceptualMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+            f"📝 PerceptualMemory add start: content={content_id}, user={memory_item.user_id}, "
             f"modality={modality}, importance={memory_item.importance:.2f}, "
             f"metadata_keys={list(memory_item.metadata.keys())}"
         )
@@ -153,7 +157,7 @@ class PerceptualMemory(BaseMemory):
             raise ValueError(f"不支持的模态类型: {modality}")
 
         # 编码感知数据
-        log.debug(f"🧬 PerceptualMemory encode start: id={memory_item.id}, modality={modality}")
+        log.debug(f"🧬 PerceptualMemory encode start: raw_data={raw_data}, modality={modality}")
         perception = self._encode_perception(raw_data, modality, memory_item.id)
 
         # 缓存与索引
@@ -174,7 +178,7 @@ class PerceptualMemory(BaseMemory):
 
         # 1) SQLite 权威入库
         ts_int = int(memory_item.timestamp.timestamp())
-        log.debug(f"💾 PerceptualMemory SQLite add start: id={memory_item.id}, ts={ts_int}")
+        log.debug(f"💾 PerceptualMemory SQLite ADD: content={content_id}, ts={ts_int}")
         self.doc_store.add_memory(
             memory_id=memory_item.id,
             user_id=memory_item.user_id,
@@ -189,11 +193,11 @@ class PerceptualMemory(BaseMemory):
                 "tags": memory_item.metadata.get("tags", []),
             }
         )
-        log.info(f"✅ PerceptualMemory SQLite add done: id={memory_item.id}")
+        log.info(f"✅ PerceptualMemory SQLite ADD SUCCESS: content={content_id}")
 
         # 2) Qdrant 向量入库（按模态写入对应集合）
         try:
-            log.debug(f"🧲 PerceptualMemory vector add start: id={memory_item.id}, modality={modality}")
+            log.debug(f"🧲 PerceptualMemory Qdrant ADD: content={content_id}, modality={modality}")
             vector = perception.encoding
             store = self._get_vector_store_for_modality(modality)
             store.add_vectors(
@@ -208,11 +212,11 @@ class PerceptualMemory(BaseMemory):
                 }],
                 ids=[memory_item.id]
             )
-            log.info(f"✅ PerceptualMemory vector add done: id={memory_item.id}, dim={len(vector)}")
+            log.info(f"✅ PerceptualMemory Qdrant ADD SUCCESS: content={content_id}, dim={len(vector)}")
         except Exception as e:
-            log.warn(f"⚠️ PerceptualMemory vector add failed, SQLite kept: id={memory_item.id}, error={e}")
+            log.warn(f"⚠️ PerceptualMemory Qdrant ADD FAILED, SQLite kept: content={content_id}, error={e}")
 
-        log.success(f"✅ PerceptualMemory add done: id={memory_item.id}, modality={modality}")
+        log.success(f"✅ PerceptualMemory add done: content={content_id}, modality={modality}")
         return memory_item.id
 
     def retrieve(self, query: str, limit: int = 5, **kwargs) -> List[MemoryItem]:
@@ -273,7 +277,7 @@ class PerceptualMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined = base_relevance * importance_weight
-            log.info(f"""🧮 PerceptualMemory{doc}
+            log.info(f"""🧮 PerceptualMemory score: content={(doc.get("content") or "")[:20] + '...'}, type={doc.get("memory_type")}
             \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
             \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({imp:.2f})*0.4
             \t (3) base_relevance({base_relevance:.2f}) = vector_score({vec_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
@@ -306,7 +310,7 @@ class PerceptualMemory(BaseMemory):
                     base_relevance = keyword_score * 0.8 + recency_score * 0.2
                     importance_weight = 0.8 + (m.importance * 0.4)
                     combined = base_relevance * importance_weight
-                    log.info(f"""🧮 PerceptualMemory fallback{m}
+                    log.info(f"""🧮 PerceptualMemory fallback score: content={m.content[:20] + '...'}, modality={m.metadata.get("modality")}
                     \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
                     \t (2) importance_weight({importance_weight:.2f})=0.8 + memory.importance({m.importance:.2f})*0.4
                     \t (3) base_relevance({base_relevance:.2f}) = keyword_score({keyword_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
@@ -326,8 +330,10 @@ class PerceptualMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新感知记忆"""
+        target = next((memory for memory in self.perceptual_memories if memory.id == memory_id), None)
+        content_id = (content if content is not None else (target.content if target else ""))[:20] + '...'
         log.info(
-            f"🛠️ PerceptualMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"🛠️ PerceptualMemory update start: content={content_id}, has_content={content is not None}, "
             f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
         )
         updated = False
@@ -343,7 +349,7 @@ class PerceptualMemory(BaseMemory):
                 modality_cache = memory.metadata.get("modality", "text")
                 updated = True
                 break
-        log.debug(f"📦 PerceptualMemory cache update done: id={memory_id}, updated={updated}, modality={modality_cache}")
+        log.debug(f"📦 PerceptualMemory cache update done: content={content_id}, updated={updated}, modality={modality_cache}")
 
         # 更新SQLite
         doc_updated = self.doc_store.update_memory(
@@ -352,14 +358,14 @@ class PerceptualMemory(BaseMemory):
             importance=importance,
             properties=metadata
         )
-        log.info(f"💾 PerceptualMemory SQLite update done: id={memory_id}, updated={doc_updated}")
+        log.info(f"💾 PerceptualMemory SQLite update done: content={content_id}, updated={doc_updated}")
 
         # 如内容或原始数据改变，则重嵌入并upsert到Qdrant
         if content is not None or (metadata and "raw_data" in metadata):
             modality = metadata.get("modality", modality_cache or "text") if metadata else (modality_cache or "text")
             raw = metadata.get("raw_data", content) if metadata else content
             try:
-                log.debug(f"🧲 PerceptualMemory vector update start: id={memory_id}, modality={modality}")
+                log.debug(f"🧲 PerceptualMemory vector update start: content={content_id}, modality={modality}")
                 perception = self._encode_perception(raw or "", modality, memory_id)
                 payload = self.doc_store.get_memory(memory_id) or {}
                 store = self._get_vector_store_for_modality(modality)
@@ -375,16 +381,18 @@ class PerceptualMemory(BaseMemory):
                     }],
                     ids=[memory_id]
                 )
-                log.info(f"✅ PerceptualMemory vector update done: id={memory_id}, dim={len(perception.encoding)}")
+                log.info(f"✅ PerceptualMemory vector update done: content={content_id}, dim={len(perception.encoding)}")
             except Exception as e:
-                log.warn(f"⚠️ PerceptualMemory vector update failed: id={memory_id}, error={e}")
+                log.warn(f"⚠️ PerceptualMemory vector update failed: content={content_id}, error={e}")
 
-        log.success(f"✅ PerceptualMemory update done: id={memory_id}, updated={updated}")
+        log.success(f"✅ PerceptualMemory update done: content={content_id}, updated={updated}")
         return updated
 
     def remove(self, memory_id: str) -> bool:
         """删除感知记忆"""
-        log.info(f"🧹 PerceptualMemory remove start: id={memory_id}, cached={len(self.perceptual_memories)}")
+        target = next((memory for memory in self.perceptual_memories if memory.id == memory_id), None)
+        content_id = (target.content if target else "")[:20] + '...'
+        log.info(f"🧹 PerceptualMemory remove start: content={content_id}, cached={len(self.perceptual_memories)}")
         removed = False
         for i, memory in enumerate(self.perceptual_memories):
             if memory.id == memory_id:
@@ -400,20 +408,20 @@ class PerceptualMemory(BaseMemory):
                             del self.modality_index[modality]
                 removed = True
                 break
-        log.debug(f"📦 PerceptualMemory cache remove done: id={memory_id}, removed={removed}")
+        log.debug(f"📦 PerceptualMemory cache remove done: content={content_id}, removed={removed}")
 
         # 权威库删除
         doc_deleted = self.doc_store.delete_memory(memory_id)
-        log.info(f"💾 PerceptualMemory SQLite delete done: id={memory_id}, deleted={doc_deleted}")
+        log.info(f"💾 PerceptualMemory SQLite delete done: content={content_id}, deleted={doc_deleted}")
         # 向量库删除（所有模态集合尝试删除）
         for store in self.vector_stores.values():
             try:
                 store.delete_memories([memory_id])
-                log.debug(f"🧲 PerceptualMemory vector delete attempted: id={memory_id}")
+                log.debug(f"🧲 PerceptualMemory vector delete attempted: content={content_id}")
             except Exception as e:
-                log.warn(f"⚠️ PerceptualMemory vector delete failed: id={memory_id}, error={e}")
+                log.warn(f"⚠️ PerceptualMemory vector delete failed: content={content_id}, error={e}")
 
-        log.success(f"✅ PerceptualMemory remove done: id={memory_id}, removed={removed}")
+        log.success(f"✅ PerceptualMemory remove done: content={content_id}, removed={removed}")
         return removed
 
     def has_memory(self, memory_id: str) -> bool:
@@ -430,6 +438,7 @@ class PerceptualMemory(BaseMemory):
         current_time = datetime.now()
 
         to_remove = []  # 收集要删除的记忆ID
+        content_ids = {}
 
         for memory in self.perceptual_memories:
             should_forget = False
@@ -453,12 +462,14 @@ class PerceptualMemory(BaseMemory):
 
             if should_forget:
                 to_remove.append(memory.id)
+                content_ids[memory.id] = memory.content[:20] + '...'
 
         # 执行硬删除
         for memory_id in to_remove:
             if self.remove(memory_id):
                 forgotten_count += 1
-                log.info(f"感知记忆硬删除: {memory_id[:8]}... (策略: {strategy})")
+                content_log = content_ids.get(memory_id, "")
+                log.info(f"感知记忆硬删除: {content_log} (策略: {strategy})")
 
         log.success(f"✅ PerceptualMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count
@@ -472,7 +483,7 @@ class PerceptualMemory(BaseMemory):
         # 删除SQLite中的perceptual记录
         docs = self.doc_store.search_memories(memory_type="perceptual", limit=10000)
         ids = [d["memory_id"] for d in docs]
-        log.info(f"💾 PerceptualMemory clear SQLite ids: count={len(ids)}")
+        log.info(f"💾 PerceptualMemory clear SQLite records: count={len(ids)}")
         for mid in ids:
             self.doc_store.delete_memory(mid)
         # 删除Qdrant向量（所有模态集合）
@@ -613,6 +624,7 @@ class PerceptualMemory(BaseMemory):
         """编码数据为固定维度向量（按模态维度对齐）"""
         target_dim = self._get_dim_for_modality(modality)
         encoder = self.encoders.get(modality, self._default_encoder)
+        log.info(f" ☑️encode_data begin, use encoder={encoder.__name__}, data={data}")
         vec = encoder(data)
         if not isinstance(vec, list):
             vec = list(vec)
@@ -633,84 +645,121 @@ class PerceptualMemory(BaseMemory):
 
     def _image_encoder_hash(self, image_data: Any) -> List[float]:
         """图像编码器（轻量确定性哈希向量，跨环境稳定）"""
+
+        log.info(" 💼image_encoder_hash begin")
         try:
             if isinstance(image_data, (bytes, bytearray)):
+                log.info(" image_encoder_hash load bytes")
                 data_bytes = bytes(image_data)
             elif isinstance(image_data, str) and os.path.exists(image_data):
+                log.info(f" image_encoder_hash load path, path={image_data}")
                 with open(image_data, 'rb') as f:
                     data_bytes = f.read()
             else:
+                log.info(" image_encoder_hash load data")
                 data_bytes = str(image_data).encode('utf-8', errors='ignore')
+
             hex_str = hashlib.sha256(data_bytes).hexdigest()
             return self._hash_to_vector(hex_str, self._get_dim_for_modality("image"))
-        except Exception:
+
+        except Exception as e:
+            log.warn(f"image_encoder_hash error: {e}, use hash_to_vector")
             return self._hash_to_vector(str(image_data), self._get_dim_for_modality("image"))
 
     def _image_encoder(self, image_data: Any) -> List[float]:
         """图像编码器（优先CLIP，不可用则哈希）"""
         if self._clip_model is None or self._clip_processor is None:
+            log.warn("CLIP模型不可用， 退化到hash")
             return self._image_encoder_hash(image_data)
+
+
         try:
             if isinstance(image_data, str) and os.path.exists(image_data):
+                log.info(f"image_encoder load path={image_data}")
                 image = Image.open(image_data).convert('RGB')
-            elif isinstance(image_data, (bytes, bytearray)):
 
+            elif isinstance(image_data, (bytes, bytearray)):
+                log.info(f"image_encoder load bytes={image_data}")
                 image = Image.open(BytesIO(bytes(image_data))).convert('RGB')
             else:
                 # 退回到哈希
+                log.warn(f"image_encoder type unsupported, image={image_data}")
                 return self._image_encoder_hash(image_data)
+
+
             inputs = self._clip_processor(images=image, return_tensors="pt")
             with self._no_grad():
                 feats = self._clip_model.get_image_features(**inputs)
             vec = feats[0].detach().cpu().numpy().tolist()
+
+            log.info(f"image_encoder CLIP finished, vec_dim={len(vec)}")
             return vec
-        except Exception:
+        except Exception as e:
+            log.warn(f"image_encoder failed, image={image_data}, error={e}")
             return self._image_encoder_hash(image_data)
 
     def _audio_encoder_hash(self, audio_data: Any) -> List[float]:
         """音频编码器（轻量确定性哈希向量）"""
+
+        log.info(" 💼audio_encoder_hash begin")
+
         try:
             if isinstance(audio_data, (bytes, bytearray)):
+                log.info(" audio_encoder_hash load bytes")
                 data_bytes = bytes(audio_data)
             elif isinstance(audio_data, str) and os.path.exists(audio_data):
+                log.info(f" audio_encoder_hash load path, path={audio_data}")
                 with open(audio_data, 'rb') as f:
                     data_bytes = f.read()
             else:
+                log.info(f"audio_encoder_hash load data")
                 data_bytes = str(audio_data).encode('utf-8', errors='ignore')
+
+
             hex_str = hashlib.sha256(data_bytes).hexdigest()
             return self._hash_to_vector(hex_str, self._get_dim_for_modality("audio"))
-        except Exception:
+
+        except Exception as e:
+            log.warn(f"audio_encoder_hash error: {e}, use hash_to_vector")
             return self._hash_to_vector(str(audio_data), self._get_dim_for_modality("audio"))
 
     def _audio_encoder(self, audio_data: Any) -> List[float]:
         """音频编码器（优先CLAP，不可用则哈希）"""
         if self._clap_model is None or self._clap_processor is None:
+            log.warn("CLAP模型不可用， 退化到hash")
             return self._audio_encoder_hash(audio_data)
         try:
-            import numpy as np
-            # 加载音频（需要 librosa）
-            import librosa
+
             if isinstance(audio_data, str) and os.path.exists(audio_data):
+                log.info(f"audio_encoder load path={audio_data}")
                 speech, sr = librosa.load(audio_data, sr=48000, mono=True)
             elif isinstance(audio_data, (bytes, bytearray)):
+                log.info(f"audio_encoder load by tempfile")
                 # 临时文件方式加载
-                import tempfile
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                     tmp.write(bytes(audio_data))
                     tmp_path = tmp.name
                 speech, sr = librosa.load(tmp_path, sr=48000, mono=True)
                 try:
                     os.remove(tmp_path)
-                except Exception:
+                except Exception as e:
+                    log.warn(f"audio_encoder remove failed, error={e}")
                     pass
             else:
+                log.warn(f"audio_encoder type unsupported, audio={audio_data}")
                 return self._audio_encoder_hash(audio_data)
+
             inputs = self._clap_processor(audios=speech, sampling_rate=48000, return_tensors="pt")
             with self._no_grad():
                 feats = self._clap_model.get_audio_features(**inputs)
             vec = feats[0].detach().cpu().numpy().tolist()
+
+            log.info(f"audio_encoder CLAP finished, vec_dim={len(vec)}")
+
             return vec
-        except Exception:
+
+        except Exception as e:
+            log.warn(f"audio_encoder failed, audio={audio_data}, error={e}")
             return self._audio_encoder_hash(audio_data)
 
     def _default_encoder(self, data: Any) -> List[float]:

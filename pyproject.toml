@@ -26,6 +26,7 @@ dependencies = [
     "langdetect>=1.0.9",
     "langgraph>=1.2.1",
     "langgraph-checkpoint>=4.1.1",
+    "librosa>=0.11.0",
     "markitdown>=0.1.6",
     "multidict>=6.7.1",
     "numpy>=2.4.6",

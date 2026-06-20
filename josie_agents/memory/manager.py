@@ -83,7 +83,7 @@ class MemoryManager:
         """
         log.debug(
             f"📝 开始添加记忆: requested_type={memory_type}, auto_classify={auto_classify}, "
-            f"content_len={len(content)}, metadata_keys={list((metadata or {}).keys())}"
+            f"content={content[:20] + '...'}, metadata_keys={list((metadata or {}).keys())}"
         )
 
         # 自动分类记忆类型
@@ -109,13 +109,13 @@ class MemoryManager:
             importance=importance,
             metadata=metadata or {}
         )
-        log.debug(f"📦 记忆项创建完成: id={memory_item.id}, type={memory_item.memory_type}, user={memory_item.user_id}")
+        log.debug(f"📦 记忆项创建完成: content={memory_item.content[:20] + '...'}, type={memory_item.memory_type}, user={memory_item.user_id}")
 
         # 添加到对应的记忆类型
         if memory_type in self.memory_types:
-            log.debug(f"📤 分发记忆到 {memory_type}: id={memory_item.id}")
+            log.debug(f"📤 分发记忆到 {memory_type}: content={memory_item.content[:20] + '...'}")
             memory_id = self.memory_types[memory_type].add(memory_item)
-            log.success(f"✅ 添加记忆到 {memory_type}: {memory_id}")
+            log.success(f"✅ 添加记忆到 {memory_type}: content={memory_item.content[:20] + '...'}")
             return memory_id
         else:
             log.error(f"❌ 添加记忆失败，不支持的记忆类型: {memory_type}, enabled={list(self.memory_types.keys())}")
@@ -127,7 +127,8 @@ class MemoryManager:
         memory_types: Optional[List[str]] = None,
         limit: int = 10,
         min_importance: float = 0.0,
-        time_range: Optional[tuple] = None
+        time_range: Optional[tuple] = None,
+        **metadata
     ) -> List[MemoryItem]:
         """检索记忆
 
@@ -145,7 +146,7 @@ class MemoryManager:
             memory_types = list(self.memory_types.keys())
 
         log.debug(
-            f"🔍 开始检索记忆: query_len={len(query)}, memory_types={memory_types}, "
+            f"🔍 开始检索记忆: query={query}, memory_types={memory_types}, "
             f"limit={limit}, min_importance={min_importance}, time_range={time_range}"
         )
 
@@ -165,7 +166,8 @@ class MemoryManager:
                         limit=per_type_limit,
                         min_importance=min_importance,
                         user_id=self.user_id,
-                        time_range=time_range
+                        time_range=time_range,
+                        **metadata
                     )
                     all_results.extend(type_results)
                     log.info(f"✅ {memory_type} 记忆检索完成: 共{len(type_results)}条召回")
@@ -199,19 +201,26 @@ class MemoryManager:
         Returns:
             是否更新成功
         """
+        content_log = (content or "")[:20] + '...'
+        for memory_instance in self.memory_types.values():
+            if hasattr(memory_instance, "get_all"):
+                target = next((memory for memory in memory_instance.get_all() if memory.id == memory_id), None)
+                if target:
+                    content_log = (content if content is not None else target.content)[:20] + '...'
+                    break
         log.info(
-            f"🛠️ 开始更新记忆: id={memory_id}, has_content={content is not None}, "
+            f"🛠️ 开始更新记忆: content={content_log}, has_content={content is not None}, "
             f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
         )
         # 查找记忆所在的类型
         for memory_type, memory_instance in self.memory_types.items():
             if memory_instance.has_memory(memory_id):
-                log.debug(f"🎯 更新命中记忆类型: {memory_type}, id={memory_id}")
+                log.debug(f"🎯 更新命中记忆类型: {memory_type}, content={content_log}")
                 updated = memory_instance.update(memory_id, content, importance, metadata)
-                log.info(f"✅ 更新记忆完成: id={memory_id}, type={memory_type}, updated={updated}")
+                log.info(f"✅ 更新记忆完成: content={content_log}, type={memory_type}, updated={updated}")
                 return updated
 
-        log.error(f"❌ 未找到记忆: {memory_id}")
+        log.error(f"❌ 未找到记忆: content={content_log}")
         return False
 
     def remove_memory(self, memory_id: str) -> bool:
@@ -223,15 +232,22 @@ class MemoryManager:
         Returns:
             是否删除成功
         """
-        log.info(f"🧹 开始删除记忆: id={memory_id}")
+        content_log = ""
+        for memory_instance in self.memory_types.values():
+            if hasattr(memory_instance, "get_all"):
+                target = next((memory for memory in memory_instance.get_all() if memory.id == memory_id), None)
+                if target:
+                    content_log = target.content[:20] + '...'
+                    break
+        log.info(f"🧹 开始删除记忆: content={content_log}")
         for memory_type, memory_instance in self.memory_types.items():
             if memory_instance.has_memory(memory_id):
-                log.debug(f"🎯 删除命中记忆类型: {memory_type}, id={memory_id}")
+                log.debug(f"🎯 删除命中记忆类型: {memory_type}, content={content_log}")
                 removed = memory_instance.remove(memory_id)
-                log.info(f"✅ 删除记忆完成: id={memory_id}, type={memory_type}, removed={removed}")
+                log.info(f"✅ 删除记忆完成: content={content_log}, type={memory_type}, removed={removed}")
                 return removed
 
-        log.error(f"❌ 未找到记忆: {memory_id}")
+        log.error(f"❌ 未找到记忆: content={content_log}")
         return False
 
     def forget_memories(
@@ -309,9 +325,9 @@ class MemoryManager:
                 memory.importance *= 1.1  # 提升重要性
                 target_memory.add(memory)
                 consolidated_count += 1
-                log.debug(f"✅ 记忆整合成功: id={memory.id}, {from_type}->{to_type}")
+                log.debug(f"✅ 记忆整合成功: content={memory.content[:20] + '...'}, {from_type}->{to_type}")
             else:
-                log.warn(f"⚠️ 记忆整合移除源记忆失败: id={memory.id}, from={from_type}")
+                log.warn(f"⚠️ 记忆整合移除源记忆失败: content={memory.content[:20] + '...'}, from={from_type}")
 
         log.success(f"✅ 记忆整合完成: {consolidated_count} 条记忆从 {from_type} 转移到 {to_type}")
         return consolidated_count

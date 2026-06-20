@@ -38,15 +38,16 @@ class WorkingMemory(BaseMemory):
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加工作记忆"""
+        content_id = memory_item.content[:20] + '...'
         log.debug(
-            f"📝 WorkingMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+            f"📝 WorkingMemory add start: content={content_id}, user={memory_item.user_id}, "
             f"importance={memory_item.importance:.2f}, count={len(self.memories)}, tokens={self.current_tokens}"
         )
         # 过期清理
         self._expire_old_memories()
         # 计算优先级（重要性 + 时间衰减）
         priority = self._calculate_priority(memory_item)
-        log.debug(f"🧮 WorkingMemory priority calculated: id={memory_item.id}, priority={priority:.4f}")
+        log.debug(f"🧮 WorkingMemory priority calculated: content={content_id}, priority={priority:.4f}")
 
         # heapq 小顶堆：存 (priority, timestamp, memory_item)，堆顶始终是优先级最低的记忆
         heapq.heappush(self.memory_heap, (priority, memory_item.timestamp, memory_item))
@@ -154,7 +155,7 @@ class WorkingMemory(BaseMemory):
             # 重要性权重
             importance_weight = 0.8 + (memory.importance * 0.4)
             final_score = base_relevance * importance_weight
-            log.info(f"""🧮 Memory{memory}
+            log.info(f"""🧮 WorkingMemory score: content={memory.content[:20] + '...'}, memory={memory}
             \t (1) final_score({final_score:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
             \t (2) importance_weight({importance_weight:.2f})=0.8 + memory.importance({memory.importance:.2f})*0.4
             \t (3) base_relevance({base_relevance:.2f}) = [vector_score({vector_score:.2f})*0.7 + keyword_score({keyword_score:.2f})*0.3] * time_decay({time_decay:.2f})""")
@@ -176,8 +177,10 @@ class WorkingMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新工作记忆"""
+        target = next((memory for memory in self.memories if memory.id == memory_id), None)
+        content_id = (content if content is not None else (target.content if target else ""))[:20] + '...'
         log.info(
-            f"🛠️ WorkingMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"🛠️ WorkingMemory update start: content={content_id}, has_content={content is not None}, "
             f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
         )
         for memory in self.memories:
@@ -200,12 +203,14 @@ class WorkingMemory(BaseMemory):
                 self._update_heap_priority(memory)
                 log.success(f"🎉 Working Memory Updated: {memory}")
                 return True
-        log.warn(f"⚠️ WorkingMemory update miss: id={memory_id}")
+        log.warn(f"⚠️ WorkingMemory update miss: content={content_id}")
         return False
 
     def remove(self, memory_id: str) -> bool:
         """删除工作记忆"""
-        log.debug(f"🧹 WorkingMemory remove start: id={memory_id}, count={len(self.memories)}")
+        target = next((memory for memory in self.memories if memory.id == memory_id), None)
+        content_id = (target.content if target else "")[:20] + '...'
+        log.debug(f"🧹 WorkingMemory remove start: content={content_id}, count={len(self.memories)}")
         for i, memory in enumerate(self.memories):
             if memory.id == memory_id:
                 removed_memory = self.memories.pop(i)
@@ -215,7 +220,7 @@ class WorkingMemory(BaseMemory):
                 self.current_tokens = max(0, self.current_tokens)
                 log.success(f"🧹 Working Memory Removed: {removed_memory}")
                 return True
-        log.warn(f"⚠️ WorkingMemory remove miss: id={memory_id}")
+        log.warn(f"⚠️ WorkingMemory remove miss: content={content_id}")
         return False
 
     def has_memory(self, memory_id: str) -> bool:
@@ -302,7 +307,7 @@ class WorkingMemory(BaseMemory):
                 # 截断最后一个记忆
                 remaining = max_length - current_length
                 if remaining > 50:  # 至少保留50个字符
-                    summary_parts.append(content[:remaining] + "...")
+                    summary_parts.append(content[:remaining] + '...')
                 break
 
         return "Working Memory Context:\n" + "\n".join(summary_parts)
@@ -424,14 +429,20 @@ class WorkingMemory(BaseMemory):
         while self.memory_heap:
             priority, timestamp, memory = heapq.heappop(self.memory_heap)
             if self.has_memory(memory.id):
-                log.debug(f"🧹 WorkingMemory remove lowest priority: id={memory.id}, priority={priority:.4f}")
+                log.debug(
+                    f"🧹 WorkingMemory remove lowest priority: "
+                    f"content={memory.content[:20] + '...'}, priority={priority:.4f}"
+                )
                 self.remove(memory.id)
                 return
         log.warn("⚠️ WorkingMemory remove lowest priority skipped: heap empty")
 
     def _update_heap_priority(self, memory: MemoryItem):
         """更新堆中记忆的优先级（重建堆）"""
-        log.debug(f"🔁 WorkingMemory heap rebuild start: trigger_id={memory.id}, count={len(self.memories)}")
+        log.debug(
+            f"🔁 WorkingMemory heap rebuild start: "
+            f"trigger_content={memory.content[:20] + '...'}, count={len(self.memories)}"
+        )
         self.memory_heap = []
         for mem in self.memories:
             priority = self._calculate_priority(mem)

@@ -91,8 +91,9 @@ class EpisodicMemory(BaseMemory):
 
     def add(self, memory_item: MemoryItem) -> str:
         """添加情景记忆"""
+        content_id = memory_item.content[:20] + '...'
         log.debug(
-            f"📝 EpisodicMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+            f"📝 EpisodicMemory add start: content={content_id}, user={memory_item.user_id}, "
             f"importance={memory_item.importance:.2f}, metadata_keys={list(memory_item.metadata.keys())}"
         )
         # 从元数据中提取情景信息，并保留调用方传入的完整metadata
@@ -130,7 +131,7 @@ class EpisodicMemory(BaseMemory):
 
         # 1) 权威存储（SQLite）
         ts_int = int(memory_item.timestamp.timestamp())
-        log.debug(f"💾 EpisodicMemory SQLite add start: id={memory_item.id}, ts={ts_int}")
+        log.debug(f"💾 EpisodicMemory SQLite add start: content={content_id}, ts={ts_int}")
         self.doc_store.add_memory(
             memory_id=memory_item.id,
             user_id=memory_item.user_id,
@@ -140,11 +141,11 @@ class EpisodicMemory(BaseMemory):
             importance=memory_item.importance,
             properties=self._to_json_safe_metadata(episode_metadata)
         )
-        log.info(f"✅ EpisodicMemory SQLite add done: id={memory_item.id}")
+        log.info(f"✅ EpisodicMemory SQLite add done: content={content_id}")
 
         # 2) 向量索引（Qdrant）
         try:
-            log.debug(f"🧲 EpisodicMemory vector add start: id={memory_item.id}")
+            log.debug(f"🧲 EpisodicMemory vector add start: content={content_id}")
             embedding = self.embedder.encode(memory_item.content)
             if hasattr(embedding, "tolist"):
                 embedding = embedding.tolist()
@@ -160,12 +161,12 @@ class EpisodicMemory(BaseMemory):
                 }],
                 ids=[memory_item.id]
             )
-            log.info(f"✅ EpisodicMemory vector add done: id={memory_item.id}, dim={len(embedding)}")
+            log.info(f"✅ EpisodicMemory vector add done: content={content_id}, dim={len(embedding)}")
         except Exception as e:
             # 向量入库失败不影响权威存储
-            log.warn(f"⚠️ EpisodicMemory vector add failed, SQLite kept: id={memory_item.id}, error={e}")
+            log.warn(f"⚠️ EpisodicMemory vector add failed, SQLite kept: content={content_id}, error={e}")
 
-        log.success(f"✅ EpisodicMemory add done: id={memory_item.id}, session={session_id}")
+        log.success(f"✅ EpisodicMemory add done: content={content_id}, session={session_id}")
         return memory_item.id
 
     def retrieve(self, query: str, limit: int = 5, **kwargs) -> List[MemoryItem]:
@@ -226,10 +227,16 @@ class EpisodicMemory(BaseMemory):
                 continue
 
             if candidate_ids is not None and mem_id not in candidate_ids:
-                log.warn(f"向量召回的episode 不在SQLite 候选名单中，跳过， episode={hit}")
+                log.warn(
+                    "向量召回的episode 不在SQLite 候选名单中，跳过， "
+                    f"content={(meta.get('content') or '')[:20] + '...'}, score={hit.get('score')}"
+                )
                 continue
             if session_id and meta.get("session_id") != session_id:
-                log.warn(f"向量召回的episode 不属于本次session，跳过， episode={hit}, session_id={session_id}")
+                log.warn(
+                    "向量召回的episode 不属于本次session，跳过， "
+                    f"content={(meta.get('content') or '')[:20] + '...'}, session_id={session_id}"
+                )
                 continue
 
             # 从权威库读取完整记录
@@ -252,7 +259,7 @@ class EpisodicMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined = base_relevance * importance_weight
-            log.info(f"""🧮 EpisodicMemory{doc}
+            log.info(f"""🧮 EpisodicMemory score: content={(doc.get("content") or "")[:20] + '...'}, type={doc.get("memory_type")}
             \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
             \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({imp:.2f})*0.4
             \t (3) base_relevance({base_relevance:.2f}) = vector_score({vec_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
@@ -289,7 +296,7 @@ class EpisodicMemory(BaseMemory):
                     base_relevance = keyword_score * 0.8 + recency_score * 0.2
                     importance_weight = 0.8 + (ep.importance * 0.4)
                     combined = base_relevance * importance_weight
-                    log.info(f"""🧮 EpisodicMemory fallback{ep.__dict__}
+                    log.info(f"""🧮 EpisodicMemory fallback score: content={ep.content[:20] + '...'}, session={ep.session_id}
                     \t (1) final_score({combined:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
                     \t (2) importance_weight({importance_weight:.2f})=0.8 + episode.importance({ep.importance:.2f})*0.4
                     \t (3) base_relevance({base_relevance:.2f}) = keyword_score({keyword_score:.2f})*0.8 + recency_score({recency_score:.2f})*0.2
@@ -324,8 +331,10 @@ class EpisodicMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新情景记忆（SQLite为权威，Qdrant按需重嵌入）"""
+        target_episode = next((episode for episode in self.episodes if episode.episode_id == memory_id), None)
+        content_id = (content if content is not None else (target_episode.content if target_episode else ""))[:20] + '...'
         log.info(
-            f"🛠️ EpisodicMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"🛠️ EpisodicMemory update start: content={content_id}, has_content={content is not None}, "
             f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
         )
         updated = False
@@ -351,7 +360,7 @@ class EpisodicMemory(BaseMemory):
                     episode.metadata.setdefault("session_id", episode.session_id)
                 updated = True
                 break
-        log.debug(f"📦 EpisodicMemory cache update done: id={memory_id}, updated={updated}")
+        log.debug(f"📦 EpisodicMemory cache update done: content={content_id}, updated={updated}")
 
         # 更新SQLite
         doc_updated = self.doc_store.update_memory(
@@ -360,12 +369,12 @@ class EpisodicMemory(BaseMemory):
             importance=importance,
             properties=self._to_json_safe_metadata(metadata) if metadata is not None else None
         )
-        log.info(f"💾 EpisodicMemory SQLite update done: id={memory_id}, updated={doc_updated}")
+        log.info(f"💾 EpisodicMemory SQLite update done: content={content_id}, updated={doc_updated}")
 
         # 如内容变更，重嵌入并upsert到Qdrant
         if content is not None:
             try:
-                log.debug(f"🧲 EpisodicMemory vector update start: id={memory_id}")
+                log.debug(f"🧲 EpisodicMemory vector update start: content={content_id}")
                 embedding = self.embedder.encode(content)
                 if hasattr(embedding, "tolist"):
                     embedding = embedding.tolist()
@@ -384,17 +393,19 @@ class EpisodicMemory(BaseMemory):
                     metadata=[payload],
                     ids=[memory_id]
                 )
-                log.info(f"✅ EpisodicMemory vector update done: id={memory_id}, dim={len(embedding)}")
+                log.info(f"✅ EpisodicMemory vector update done: content={content_id}, dim={len(embedding)}")
             except Exception as e:
-                log.warn(f"⚠️ EpisodicMemory vector update failed: id={memory_id}, error={e}")
+                log.warn(f"⚠️ EpisodicMemory vector update failed: content={content_id}, error={e}")
 
         result = updated or doc_updated
-        log.success(f"✅ EpisodicMemory update done: id={memory_id}, updated={result}")
+        log.success(f"✅ EpisodicMemory update done: content={content_id}, updated={result}")
         return result
 
     def remove(self, memory_id: str) -> bool:
         """删除情景记忆（SQLite + Qdrant）"""
-        log.info(f"🧹 EpisodicMemory remove start: id={memory_id}, cached={len(self.episodes)}")
+        target_episode = next((episode for episode in self.episodes if episode.episode_id == memory_id), None)
+        content_id = (target_episode.content if target_episode else "")[:20] + '...'
+        log.info(f"🧹 EpisodicMemory remove start: content={content_id}, cached={len(self.episodes)}")
         removed = False
         for i, episode in enumerate(self.episodes):
             if episode.episode_id == memory_id:
@@ -406,21 +417,21 @@ class EpisodicMemory(BaseMemory):
                         del self.sessions[session_id]
                 removed = True
                 break
-        log.debug(f"📦 EpisodicMemory cache remove done: id={memory_id}, removed={removed}")
+        log.debug(f"📦 EpisodicMemory cache remove done: content={content_id}, removed={removed}")
 
         # 权威库删除
         doc_deleted = self.doc_store.delete_memory(memory_id)
-        log.info(f"💾 EpisodicMemory SQLite delete done: id={memory_id}, deleted={doc_deleted}")
+        log.info(f"💾 EpisodicMemory SQLite delete done: content={content_id}, deleted={doc_deleted}")
 
         # 向量库删除
         try:
             self.vector_store.delete_memories([memory_id])
-            log.info(f"✅ EpisodicMemory vector delete done: id={memory_id}")
+            log.info(f"✅ EpisodicMemory vector delete done: content={content_id}")
         except Exception as e:
-            log.warn(f"⚠️ EpisodicMemory vector delete failed: id={memory_id}, error={e}")
+            log.warn(f"⚠️ EpisodicMemory vector delete failed: content={content_id}, error={e}")
 
         result = removed or doc_deleted
-        log.success(f"✅ EpisodicMemory remove done: id={memory_id}, removed={result}")
+        log.success(f"✅ EpisodicMemory remove done: content={content_id}, removed={result}")
         return result
 
     def has_memory(self, memory_id: str) -> bool:
@@ -439,7 +450,7 @@ class EpisodicMemory(BaseMemory):
         # SQLite内的episodic全部删除
         docs = self.doc_store.search_memories(memory_type="episodic", limit=10000)
         ids = [d["memory_id"] for d in docs]
-        log.info(f"💾 EpisodicMemory clear SQLite ids: count={len(ids)}")
+        log.info(f"💾 EpisodicMemory clear SQLite records: count={len(ids)}")
         for mid in ids:
             self.doc_store.delete_memory(mid)
 
@@ -462,6 +473,7 @@ class EpisodicMemory(BaseMemory):
         current_time = datetime.now()
 
         to_remove = []  # 收集要删除的记忆ID
+        content_ids = {}
 
         for episode in self.episodes:
             should_forget = False
@@ -485,12 +497,14 @@ class EpisodicMemory(BaseMemory):
 
             if should_forget:
                 to_remove.append(episode.episode_id)
+                content_ids[episode.episode_id] = episode.content[:20] + '...'
 
         # 执行硬删除
         for episode_id in to_remove:
             if self.remove(episode_id):
                 forgotten_count += 1
-                log.success(f"情景记忆硬删除: {episode_id[:8]}... (策略: {strategy})")
+                content_log = content_ids.get(episode_id, "")
+                log.success(f"情景记忆硬删除: {content_log} (策略: {strategy})")
 
         log.success(f"✅ EpisodicMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count
@@ -630,7 +644,7 @@ class EpisodicMemory(BaseMemory):
             timeline.append({
                 "episode_id": episode.episode_id,
                 "timestamp": episode.timestamp.isoformat(),
-                "content": episode.content[:100] + "..." if len(episode.content) > 100 else episode.content,
+                "content": episode.content[:100] + '...' if len(episode.content) > 100 else episode.content,
                 "session_id": episode.session_id,
                 "importance": episode.importance,
                 "outcome": episode.outcome

@@ -159,7 +159,7 @@ class Neo4jGraphStore:
                 record = result.single()
 
                 if record:
-                    log.debug(f"✅ 添加实体: {name} ({entity_type})")
+                    log.debug(f"🕸️ 添加实体: {name} ({entity_type}):{entity_id}")
                     return True
                 return False
 
@@ -212,7 +212,7 @@ class Neo4jGraphStore:
                 record = result.single()
 
                 if record:
-                    log.debug(f"✅ 添加关系: {from_entity_id} -{relationship_type}-> {to_entity_id}")
+                    log.debug(f"🕸️ 添加关系: {from_entity_id} -{relationship_type}-> {to_entity_id}")
                     return True
                 return False
 

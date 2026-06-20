@@ -180,7 +180,8 @@ class MemoryTool(BaseTool):
         limit: int = 5,
         memory_types: List[str] = None,
         memory_type: str = None,  # 添加单数形式的参数支持
-        min_importance: float = 0.1
+        min_importance: float = 0.1,
+        **metadata
     ) -> str:
         """搜索记忆"""
         try:
@@ -192,7 +193,8 @@ class MemoryTool(BaseTool):
                 query=query,
                 limit=limit,
                 memory_types=memory_types,
-                min_importance=min_importance
+                min_importance=min_importance,
+                **metadata
             )
 
             if not results:

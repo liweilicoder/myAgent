@@ -32,6 +32,9 @@ class Entity:
         self.updated_at = datetime.now()
         self.frequency = 1  # 出现频率
 
+    def __str__(self):
+        return f"【{self.entity_type}: {self.name}】"
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "entity_id": self.entity_id,
@@ -60,6 +63,9 @@ class Relation:
         self.properties = properties or {}
         self.created_at = datetime.now()
         self.frequency = 1  # 关系出现频率
+
+    def __str__(self):
+        return f"【{self.from_entity}: {self.to_entity}】"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -200,22 +206,20 @@ class SemanticMemory(BaseMemory):
     def add(self, memory_item: MemoryItem) -> str:
         """添加语义记忆"""
         try:
+            content_id = memory_item.content[:20] + '...'
             log.info(
-                f"📝 SemanticMemory add start: id={memory_item.id}, user={memory_item.user_id}, "
+                f"📝 SemanticMemory add start: content={content_id}, user={memory_item.user_id}, "
                 f"importance={memory_item.importance:.2f}, content_len={len(memory_item.content)}"
             )
             # 1. 生成文本嵌入
             embedding = self.embedding_model.encode(memory_item.content)
             self.memory_embeddings[memory_item.id] = embedding
-            log.debug(f"🧬 SemanticMemory embedding done: id={memory_item.id}, dim={len(embedding)}")
+            log.debug(f"🧬 SemanticMemory embedding done: content={memory_item.content[:20] + '...'}, dim={len(embedding)}")
 
             # 2. 提取实体和关系
             entities = self._extract_entities(memory_item.content)
             relations = self._extract_relations(memory_item.content, entities)
-            log.info(
-                f"🏷️ SemanticMemory extraction done: id={memory_item.id}, "
-                f"entities={len(entities)}, relations={len(relations)}"
-            )
+            log.info(f"🏷️ SemanticMemory extraction done: content={content_id}")
 
             # 3. 存储到Neo4j图数据库
             log.debug(f"🕸️ SemanticMemory graph add start: entities={len(entities)}, relations={len(relations)}")
@@ -224,7 +228,7 @@ class SemanticMemory(BaseMemory):
 
             for relation in relations:
                 self._add_relation_to_graph(relation, memory_item)
-            log.info(f"✅ SemanticMemory graph add done: id={memory_item.id}")
+            log.info(f"✅ SemanticMemory graph add done: content={content_id}")
 
             # 4. 存储到Qdrant向量数据库
             metadata = {
@@ -239,7 +243,7 @@ class SemanticMemory(BaseMemory):
                 "relation_count": len(relations)
             }
 
-            log.debug(f"🧲 SemanticMemory vector add start: id={memory_item.id}")
+            log.debug(f"🧲 SemanticMemory vector add start: content={content_id}")
             success = self.vector_store.add_vectors(
                 vectors=[embedding.tolist()],
                 metadata=[metadata],
@@ -249,7 +253,7 @@ class SemanticMemory(BaseMemory):
             if not success:
                 log.warn("⚠️ 向量存储失败，但记忆已添加到图数据库")
             else:
-                log.info(f"✅ SemanticMemory vector add done: id={memory_item.id}")
+                log.info(f"✅ SemanticMemory vector add done: content={content_id}")
 
             # 5. 添加实体信息到元数据
             memory_item.metadata["entities"] = [e.entity_id for e in entities]
@@ -261,7 +265,7 @@ class SemanticMemory(BaseMemory):
             self.semantic_memories.append(memory_item)
 
             log.success(
-                f"✅ 添加语义记忆: id={memory_item.id}, "
+                f"✅ 添加语义记忆: content={content_id}, "
                 f"{len(entities)}个实体, {len(relations)}个关系, cached={len(self.semantic_memories)}"
             )
             return memory_item.id
@@ -311,7 +315,7 @@ class SemanticMemory(BaseMemory):
                 # 检查是否已遗忘
                 memory = next((m for m in self.semantic_memories if m.id == memory_id), None)
                 if memory and memory.metadata.get("forgotten", False):
-                    log.debug(f"⏭️ SemanticMemory skip forgotten memory: id={memory_id}")
+                    log.debug(f"⏭️ SemanticMemory skip forgotten memory: content={memory.content[:20] + '...'}")
                     continue  # 跳过已遗忘的记忆
 
                 # 处理时间戳
@@ -391,7 +395,7 @@ class SemanticMemory(BaseMemory):
     def _graph_search(self, query: str, limit: int, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Neo4j图搜索"""
         try:
-            log.debug(f"🕸️ SemanticMemory _graph_search start: query_len={len(query)}, limit={limit}, user_id={user_id}")
+            log.debug(f"🕸️ SemanticMemory _graph_search start: query={query}, limit={limit}, user_id={user_id}")
             # 从查询中提取实体
             query_entities = self._extract_entities(query)
             log.debug(f"🏷️ SemanticMemory _graph_search extracted entities: count={len(query_entities)}")
@@ -441,7 +445,8 @@ class SemanticMemory(BaseMemory):
                 except Exception as e:
                     log.debug(f"图搜索实体 {entity.entity_id} 失败: {e}")
                     continue
-            log.debug(f"🔗 SemanticMemory _graph_search related memory ids: count={len(related_memory_ids)}")
+            related_count = len(related_memory_ids)
+            log.debug(f"🔗 SemanticMemory _graph_search related memories: count={related_count}")
 
             # 构建结果 - 从向量数据库获取完整记忆信息
             results = []
@@ -480,7 +485,7 @@ class SemanticMemory(BaseMemory):
                     })
 
                 except Exception as e:
-                    log.debug(f"获取记忆 {memory_id} 详情失败: {e}")
+                    log.debug(f"获取记忆详情失败: content=<empty>, error={e}")
                     continue
 
             # 按图相关性排序
@@ -556,7 +561,7 @@ class SemanticMemory(BaseMemory):
 
             # 最终得分：相似度 * 重要性权重
             combined_score = base_relevance * importance_weight
-            log.info(f"""🧮 SemanticMemory{result}
+            log.info(f"""🧮 SemanticMemory score: content={(result.get("content") or "")[:20] + '...'}, type={result.get("memory_type")}
             \t (1) final_score({combined_score:.2f})=base_relevance({base_relevance:.2f})*importance_weight({importance_weight:.2f})
             \t (2) importance_weight({importance_weight:.2f})=0.8 + importance({importance:.2f})*0.4
             \t (3) base_relevance({base_relevance:.2f}) = vector_score({vector_score:.2f})*0.7 + graph_score({graph_score:.2f})*0.3""")
@@ -585,11 +590,8 @@ class SemanticMemory(BaseMemory):
         )
 
         # 调试信息
-        log.debug(f"🔍 向量结果: {len(vector_results)}, 图结果: {len(graph_results)}")
-        log.debug(f"📝 去重后: {len(combined)}, 过滤后: {len(filtered_results)}")
-
-        for i, result in enumerate(sorted_results[:3]):
-            log.debug(f"  结果{i + 1}: 向量={result['vector_score']:.3f}, 图={result['graph_score']:.3f}, 精确={result.get('exact_match_bonus', 0):.3f}, 关键词={result.get('keyword_bonus', 0):.3f}, 公司={result.get('company_bonus', 0):.3f}, 实体={result.get('entity_type_bonus', 0):.3f}, 综合={result['combined_score']:.3f}")
+        log.debug(f"🔍 向量搜索结果共 {len(vector_results)}条, 图搜索结果共 {len(graph_results)}条")
+        log.debug(f"📝 向量+图搜索合并去重后共 {len(combined)}条, 基于最低重要性阈值过滤后共 {len(filtered_results)}条")
 
         return sorted_results[:limit]
 
@@ -639,7 +641,7 @@ class SemanticMemory(BaseMemory):
 
                 if not doc.ents:
                     # 如果没有实体，记录详细的词元信息
-                    log.debug("🔍 未找到实体，词元分析:")
+                    log.debug("🔍 未找到实体，词元分析（只显示前5个词元）:")
                     for token in doc[:5]:  # 只显示前5个词元
                         log.debug(f"   '{token.text}' -> POS: {token.pos_}, TAG: {token.tag_}, ENT_IOB: {token.ent_iob_}")
 
@@ -781,6 +783,8 @@ class SemanticMemory(BaseMemory):
         if not getattr(self, "graph_store", None):
             return
 
+        log.info(f"[_store_linguistic_analysis]存储词法分析结果到Neo4j, doc={doc}")
+
         try:
             # 为每个词元创建节点
             for token in doc:
@@ -849,7 +853,7 @@ class SemanticMemory(BaseMemory):
                     }
                 )
 
-            log.success(f"🔗 已将词法分析结果存储到Neo4j: {len([t for t in doc if not t.is_punct and not t.is_space])} 个词元")
+            log.success(f"🔗 [_store_linguistic_analysis]已将词法分析结果存储到Neo4j: {len([t for t in doc if not t.is_punct and not t.is_space])} 个词元")
 
         except Exception as e:
             log.warn(f"⚠️ 存储词法分析失败: {e}")
@@ -941,6 +945,11 @@ class SemanticMemory(BaseMemory):
         try:
             memory_entities = memory_metadata.get("entities", [])
             if not memory_entities or not query_entities:
+                log.debug(
+                    f"🧮 SemanticMemory graph relevance skipped: "
+                    f"content={(memory_metadata.get('content') or '')[:20] + '...'}, "
+                    f"memory_entities={len(memory_entities)}, query_entities={len(query_entities)}"
+                )
                 return 0.0
 
             # 实体匹配度
@@ -962,8 +971,19 @@ class SemanticMemory(BaseMemory):
                     entity_density * 0.2 +  # 实体密度权重20%
                     relation_density * 0.2  # 关系密度权重20%
             )
+            final_score = min(relevance_score, 1.0)
+            query_entity_names = [entity.name for entity in query_entities[:5]]
+            log.info(
+                f"""🧮 SemanticMemory graph relevance: content={(memory_metadata.get('content') or '')[:20] + '...'}
+                \t (1) final_score({final_score:.2f})=min(relevance_score({relevance_score:.2f}), 1.0)
+                \t (2) relevance_score({relevance_score:.2f})=entity_score({entity_score:.2f})*0.6 + entity_density({entity_density:.2f})*0.2 + relation_density({relation_density:.2f})*0.2
+                \t (3) entity_score({entity_score:.2f})=matching_entities({matching_entities}) / query_entities({len(query_entity_ids)})
+                \t (4) entity_density({entity_density:.2f})=min(entity_count({entity_count}) / 10, 1.0)
+                \t (5) relation_density({relation_density:.2f})=min(relation_count({relation_count}) / 5, 1.0)
+                \t query_entity_names={query_entity_names}"""
+            )
 
-            return min(relevance_score, 1.0)
+            return final_score
 
         except Exception as e:
             log.debug(f"计算图相关性失败: {e}")
@@ -1001,12 +1021,12 @@ class SemanticMemory(BaseMemory):
 
     def _find_memory_by_id(self, memory_id: str) -> Optional[MemoryItem]:
         """根据ID查找记忆"""
-        log.debug(f"🔍 查找记忆ID: {memory_id}, 当前记忆数: {len(self.semantic_memories)}")
+        log.debug(f"🔍 基于ID从本地缓存中查找记忆: 当前缓存全部记忆数: {len(self.semantic_memories)}")
         for memory in self.semantic_memories:
             if memory.id == memory_id:
-                log.debug(f"✅ 找到记忆: {memory.content[:50]}...")
+                log.debug(f"✅ 基于ID从本地缓存中找到记忆: content={memory.content[:20] + '...'}")
                 return memory
-        log.debug(f"❌ 未找到记忆ID: {memory_id}")
+        log.debug("❌ 基于ID从本地缓存中未找到记忆")
         return None
 
     def update(
@@ -1017,13 +1037,14 @@ class SemanticMemory(BaseMemory):
         metadata: Dict[str, Any] = None
     ) -> bool:
         """更新语义记忆"""
+        memory = self._find_memory_by_id(memory_id)
+        content_id = (content if content is not None else (memory.content if memory else ""))[:20] + '...'
         log.info(
-            f"🛠️ SemanticMemory update start: id={memory_id}, has_content={content is not None}, "
+            f"🛠️ SemanticMemory update start: content={content_id}, has_content={content is not None}, "
             f"importance={importance}, metadata_keys={list((metadata or {}).keys())}"
         )
-        memory = self._find_memory_by_id(memory_id)
         if not memory:
-            log.warn(f"⚠️ SemanticMemory update miss: id={memory_id}")
+            log.warn(f"⚠️ SemanticMemory update miss: content={content_id}")
             return False
 
         try:
@@ -1031,19 +1052,19 @@ class SemanticMemory(BaseMemory):
                 # 重新生成嵌入和提取实体
                 embedding = self.embedding_model.encode(content)
                 self.memory_embeddings[memory_id] = embedding
-                log.debug(f"🧬 SemanticMemory update embedding done: id={memory_id}, dim={len(embedding)}")
+                log.debug(f"🧬 SemanticMemory update embedding done: content={content_id}, dim={len(embedding)}")
 
                 # 清理旧的实体关系
                 old_entities = memory.metadata.get("entities", [])
                 self._cleanup_entities_and_relations(old_entities)
-                log.debug(f"🧹 SemanticMemory old entities cleanup requested: id={memory_id}, count={len(old_entities)}")
+                log.debug(f"🧹 SemanticMemory old entities cleanup requested: content={content_id}, count={len(old_entities)}")
 
                 # 提取新的实体和关系
                 memory.content = content
                 entities = self._extract_entities(content)
                 relations = self._extract_relations(content, entities)
                 log.info(
-                    f"🏷️ SemanticMemory update extraction done: id={memory_id}, "
+                    f"🏷️ SemanticMemory update extraction done: content={content_id}, "
                     f"entities={len(entities)}, relations={len(relations)}"
                 )
 
@@ -1065,7 +1086,7 @@ class SemanticMemory(BaseMemory):
             if metadata is not None:
                 memory.metadata.update(metadata)
 
-                log.success(f"✅ SemanticMemory update done: id={memory_id}")
+                log.success(f"✅ SemanticMemory update done: content={content_id}")
                 return True
 
         except Exception as e:
@@ -1074,29 +1095,30 @@ class SemanticMemory(BaseMemory):
 
     def remove(self, memory_id: str) -> bool:
         """删除语义记忆"""
-        log.info(f"🧹 SemanticMemory remove start: id={memory_id}, cached={len(self.semantic_memories)}")
         memory = self._find_memory_by_id(memory_id)
+        content_id = (memory.content if memory else "")[:20] + '...'
+        log.info(f"🧹 SemanticMemory remove start: content={content_id}, cached={len(self.semantic_memories)}")
         if not memory:
-            log.warn(f"⚠️ SemanticMemory remove miss: id={memory_id}")
+            log.warn(f"⚠️ SemanticMemory remove miss: content={content_id}")
             return False
 
         try:
             # 删除向量
-            log.debug(f"🧲 SemanticMemory vector delete start: id={memory_id}")
+            log.debug(f"🧲 SemanticMemory vector delete start: content={content_id}")
             self.vector_store.delete_memories([memory_id])
-            log.info(f"✅ SemanticMemory vector delete done: id={memory_id}")
+            log.info(f"✅ SemanticMemory vector delete done: content={content_id}")
 
             # 清理实体和关系
             entities = memory.metadata.get("entities", [])
             self._cleanup_entities_and_relations(entities)
-            log.debug(f"🧹 SemanticMemory entity cleanup requested: id={memory_id}, count={len(entities)}")
+            log.debug(f"🧹 SemanticMemory entity cleanup requested: content={content_id}, count={len(entities)}")
 
             # 删除记忆
             self.semantic_memories.remove(memory)
             if memory_id in self.memory_embeddings:
                 del self.memory_embeddings[memory_id]
 
-                log.success(f"✅ SemanticMemory remove done: id={memory_id}, cached={len(self.semantic_memories)}")
+                log.success(f"✅ SemanticMemory remove done: content={content_id}, cached={len(self.semantic_memories)}")
                 return True
 
         except Exception as e:
@@ -1123,6 +1145,7 @@ class SemanticMemory(BaseMemory):
         current_time = datetime.now()
 
         to_remove = []  # 收集要删除的记忆ID
+        content_ids = {}
 
         for memory in self.semantic_memories:
             should_forget = False
@@ -1146,12 +1169,14 @@ class SemanticMemory(BaseMemory):
 
             if should_forget:
                 to_remove.append(memory.id)
+                content_ids[memory.id] = memory.content[:20] + '...'
 
         # 执行硬删除
         for memory_id in to_remove:
             if self.remove(memory_id):
                 forgotten_count += 1
-                log.info(f"语义记忆硬删除: {memory_id[:8]}... (策略: {strategy})")
+                content_log = content_ids.get(memory_id, "")
+                log.info(f"语义记忆硬删除: {content_log} (策略: {strategy})")
 
         log.success(f"✅ SemanticMemory forget done: candidates={len(to_remove)}, forgotten={forgotten_count}")
         return forgotten_count

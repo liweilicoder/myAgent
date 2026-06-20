@@ -421,10 +421,10 @@ class QdrantVectorStore:
         """
         try:
             if not ids:
-                log.info("⏭️ [Qdrant] delete_vectors skipped: empty ids")
+                log.info("⏭️ [Qdrant] delete_vectors skipped: empty")
                 return True
 
-            log.info(f"🧹 [Qdrant] delete_vectors start: collection={self.collection_name}, ids={len(ids)}")
+            log.info(f"🧹 [Qdrant] delete_vectors start: collection={self.collection_name}, count={len(ids)}")
             operation_info = self.client.delete(
                 collection_name=self.collection_name,
                 points_selector=models.PointIdsList(
@@ -469,9 +469,10 @@ class QdrantVectorStore:
         """
         try:
             if not memory_ids:
-                log.info("⏭️ [Qdrant] delete_memories skipped: empty ids")
+                log.info("⏭️ [Qdrant] delete_memories skipped: empty")
                 return
-            log.info(f"🧹 [Qdrant] delete_memories start: collection={self.collection_name}, memory_ids={len(memory_ids)}")
+            delete_count = len(memory_ids)
+            log.info(f"🧹 [Qdrant] delete_memories start: collection={self.collection_name}, count={delete_count}")
             # 构建 should 过滤条件：memory_id 等于任一给定值
             conditions = [
                 FieldCondition(key="memory_id", match=MatchValue(value=mid))
@@ -483,7 +484,7 @@ class QdrantVectorStore:
                 points_selector=models.FilterSelector(filter=query_filter),
                 wait=True,
             )
-            log.success(f"✅ 成功按memory_id删除 {len(memory_ids)} 个Qdrant向量")
+            log.success(f"✅ 成功删除 {delete_count} 个Qdrant向量")
         except Exception as e:
             log.error(f"❌ 删除记忆失败: {e}")
             raise
