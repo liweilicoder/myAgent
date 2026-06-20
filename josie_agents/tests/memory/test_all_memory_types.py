@@ -196,6 +196,7 @@ class MemoryTypesDeepDive:
         timeline_search = self.episodic_memory_tool.run({"action": "search",
                                                          "query": "学习",
                                                          "memory_type": "episodic",
+                                                         "session_id": "hahaha",
                                                          "limit": 10})
         log.test(f"学习时间线: {timeline_search}")
 

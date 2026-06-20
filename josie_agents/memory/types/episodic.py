@@ -225,17 +225,11 @@ class EpisodicMemory(BaseMemory):
             if not mem_id or mem_id in seen:
                 continue
 
-            # 检查是否已遗忘
-            episode = next((e for e in self.episodes if e.episode_id == mem_id), None)
-            if episode and episode.context.get("forgotten", False):
-                log.warn(f"episode 已经被遗忘，跳过，episode={episode}")
-                continue  # 跳过已遗忘的记忆
-
             if candidate_ids is not None and mem_id not in candidate_ids:
-                log.warn(f"向量召回的episode 不在SQLite 候选名单中，跳过， episode={episode}")
+                log.warn(f"向量召回的episode 不在SQLite 候选名单中，跳过， episode={hit}")
                 continue
             if session_id and meta.get("session_id") != session_id:
-                log.warn(f"向量召回的episode 不属于本次session，跳过， episode={episode}, session_id={session_id}")
+                log.warn(f"向量召回的episode 不属于本次session，跳过， episode={hit}, session_id={session_id}")
                 continue
 
             # 从权威库读取完整记录

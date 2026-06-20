@@ -8,6 +8,7 @@
 import os
 import threading
 import uuid
+from pprint import pformat
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 
@@ -398,7 +399,10 @@ class QdrantVectorStore:
                 }
                 results.append(result)
 
-            log.success(f"🔍 Qdrant搜索完成: collection={self.collection_name}, returned={len(results)}")
+            log.success(
+                f"🔍 Qdrant搜索完成: collection={self.collection_name}, "
+                f"len_returned={len(results)}\n{pformat(results, width=120)}"
+            )
             return results
 
         except Exception as e:
