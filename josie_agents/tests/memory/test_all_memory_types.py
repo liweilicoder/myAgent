@@ -484,7 +484,7 @@ class MemoryTypesDeepDive:
             {
                 "content": "一张美丽的日落风景照片",
                 "modality": "image",
-                "file_path": "/simulated/sunset.jpg",
+                "file_path": "/Users/jesse/PythonProjects/myAgent/josie_agents/tests/memory/simulated/sunset.jpg",
                 "scene_type": "landscape",
                 "colors": ["orange", "red", "purple"],
                 "objects": ["sun", "clouds", "horizon"],
@@ -494,7 +494,7 @@ class MemoryTypesDeepDive:
             {
                 "content": "技术架构图展示了微服务系统设计",
                 "modality": "image",
-                "file_path": "/simulated/architecture.png",
+                "file_path": "/Users/jesse/PythonProjects/myAgent/josie_agents/tests/memory/simulated/architecture.png",
                 "diagram_type": "technical",
                 "components": ["API Gateway", "Services", "Database"],
                 "complexity": "high",
@@ -518,7 +518,7 @@ class MemoryTypesDeepDive:
             {
                 "content": "一段优美的古典音乐演奏",
                 "modality": "audio",
-                "file_path": "/simulated/classical.mp3",
+                "file_path": "/Users/jesse/PythonProjects/myAgent/josie_agents/tests/memory/simulated/classical.mp3",
                 "genre": "classical",
                 "instruments": ["piano", "violin", "cello"],
                 "tempo": "andante",
@@ -540,18 +540,19 @@ class MemoryTypesDeepDive:
         log.test("-" * 60)
 
         cross_modal_queries = [
-            ("美丽的风景", "寻找视觉美感相关内容"),
-            ("技术文档", "查找技术相关的多模态内容"),
-            ("音乐和艺术", "检索艺术相关的感知记忆"),
-            ("会议和讨论", "查找交流相关的内容")
+            ("美丽的风景", "寻找视觉美感相关内容", "image"),
+            ("技术文档", "查找技术相关的多模态内容","text"),
+            ("音乐和艺术", "检索艺术相关的感知记忆","audio")
         ]
 
-        for query, description in cross_modal_queries:
+        for query, description, mod in cross_modal_queries:
             results = self.perceptual_memory_tool.run({"action": "search",
                                                        "query": query,
                                                        "memory_type": "perceptual",
-                                                       "limit": 3})
-            log.test(f"  跨模态查询: '{query}' ({description})")
+                                                       "limit": 3,
+                                                       "target_modality": mod
+                                                       })
+            log.test(f"  跨模态查询: '{query}' ({description})({mod})")
             log.test(f"    结果: {results[:120]}...")
 
         # 演示感知特征分析

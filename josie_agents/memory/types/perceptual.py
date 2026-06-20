@@ -117,24 +117,27 @@ class PerceptualMemory(BaseMemory):
         # 初始化Qdrant向量数据库（使用连接管理器避免重复连接）
         db_config = get_database_config()
         qdrant_config = db_config.get_qdrant_config() or {}
-        qdrant_config["vector_size"] = self.vector_dim
         base_collection = qdrant_config["collection_name"]
 
         self.vector_stores: Dict[str, QdrantVectorStore] = {}
 
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_text"
+        qdrant_config["vector_size"] = self._get_dim_for_modality("text")
         self.vector_stores["text"] = QdrantConnectionManager.get_instance(**qdrant_config)
-        log.success(f"🏅 向量数据库[文本] 集合创建成功, collection_name={base_collection}_perceptual_text")
+        log.success(f"🏅 向量数据库[文本] 集合创建成功, collection_name={base_collection}_perceptual_text, dim={self._get_dim_for_modality('text')}")
 
         # 图像集合（若CLIP不可用，维度退化为text维度）
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_image"
+        qdrant_config["vector_size"] = self._get_dim_for_modality("image")
         self.vector_stores["image"] = QdrantConnectionManager.get_instance(**qdrant_config)
-        log.success(f"🏅 向量数据库[图像] 集合创建成功, collection_name={base_collection}_perceptual_image")
+        log.success(f"🏅 向量数据库[图像] 集合创建成功, collection_name={base_collection}_perceptual_image, dim={self._get_dim_for_modality('image')}")
+
 
         # 音频集合（若CLAP不可用，维度退化为text维度）
         qdrant_config["collection_name"] = f"{base_collection}_perceptual_audio"
+        qdrant_config["vector_size"] = self._get_dim_for_modality("audio")
         self.vector_stores["audio"] = QdrantConnectionManager.get_instance(**qdrant_config)
-        log.success(f"🏅 向量数据库[音频] 集合创建成功, collection_name={base_collection}_perceptual_audio")
+        log.success(f"🏅 向量数据库[音频] 集合创建成功, collection_name={base_collection}_perceptual_audio, dim={self._get_dim_for_modality('audio')}")
 
 
         # 编码器（轻量实现；真实场景可替换为CLIP/CLAP等）
@@ -222,17 +225,14 @@ class PerceptualMemory(BaseMemory):
     def retrieve(self, query: str, limit: int = 5, **kwargs) -> List[MemoryItem]:
         """检索感知记忆（可筛模态；同模态向量检索+时间/重要性融合）"""
         user_id = kwargs.get("user_id")
-        target_modality = kwargs.get("target_modality")  # 可选：限制目标模态
+        target_modality = kwargs.get("target_modality")
         query_modality = kwargs.get("query_modality", target_modality or "text")
-        log.info(
-            f"🔍 PerceptualMemory retrieve start: query_len={len(query)}, limit={limit}, "
-            f"user_id={user_id}, query_modality={query_modality}, target_modality={target_modality}"
-        )
+        log.info(f"🔍 PerceptualMemory retrieve : query={query}, limit={limit}, query_modality={query_modality}, target_modality={target_modality}")
 
         # 仅在同模态情况下进行向量检索（跨模态需要CLIP/CLAP，此处保留简单回退）
         try:
-            log.debug("🔍 PerceptualMemory vector search start")
-            qvec = self._encode_data(query, query_modality)
+            log.debug("🔍 PerceptualMemory 开始向量检索，将query嵌入位目标模态向量")
+            query_vec = self._encode_data(query, target_modality)
             where = {"memory_type": "perceptual"}
             if user_id:
                 where["user_id"] = user_id
@@ -240,11 +240,11 @@ class PerceptualMemory(BaseMemory):
                 where["modality"] = target_modality
             store = self._get_vector_store_for_modality(target_modality or query_modality)
             hits = store.search_similar(
-                query_vector=qvec,
+                query_vector=query_vec,
                 limit=max(limit * 5, 20),
                 where=where
             )
-            log.info(f"✅ PerceptualMemory vector search done: hits={len(hits)}")
+            log.info(f"✅ PerceptualMemory 向量检索完成: hits={len(hits)}")
         except Exception as e:
             hits = []
             log.warn(f"⚠️ PerceptualMemory vector search failed, fallback may run: {e}")
@@ -624,10 +624,9 @@ class PerceptualMemory(BaseMemory):
         """编码数据为固定维度向量（按模态维度对齐）"""
         target_dim = self._get_dim_for_modality(modality)
         encoder = self.encoders.get(modality, self._default_encoder)
-        log.info(f" ☑️encode_data begin, use encoder={encoder.__name__}, data={data}")
+        log.debug(f" ☑️encode_data begin, use encoder={encoder.__name__}, data={data}, modality={modality}")
         vec = encoder(data)
-        if not isinstance(vec, list):
-            vec = list(vec)
+        vec = self._normalize_vector(vec)
         if len(vec) < target_dim:
             vec = vec + [0.0] * (target_dim - len(vec))
         elif len(vec) > target_dim:
@@ -638,6 +637,8 @@ class PerceptualMemory(BaseMemory):
 
     def _text_encoder(self, text: str) -> List[float]:
         """文本编码器（使用嵌入模型）"""
+
+        log.debug(" 💼text_encoder begin")
         emb = self.text_embedder.encode(text or "")
         if hasattr(emb, "tolist"):
             emb = emb.tolist()
@@ -675,15 +676,15 @@ class PerceptualMemory(BaseMemory):
 
         try:
             if isinstance(image_data, str) and os.path.exists(image_data):
-                log.info(f"image_encoder load path={image_data}")
+                log.debug(f"image_encoder load path={image_data}")
                 image = Image.open(image_data).convert('RGB')
 
             elif isinstance(image_data, (bytes, bytearray)):
-                log.info(f"image_encoder load bytes={image_data}")
+                log.debug(f"image_encoder load bytes={image_data}")
                 image = Image.open(BytesIO(bytes(image_data))).convert('RGB')
             else:
                 # 退回到哈希
-                log.warn(f"image_encoder type unsupported, image={image_data}")
+                log.warn(f"image_encoder type unsupported, image={image_data}, 退回到hash")
                 return self._image_encoder_hash(image_data)
 
 
@@ -692,7 +693,7 @@ class PerceptualMemory(BaseMemory):
                 feats = self._clip_model.get_image_features(**inputs)
             vec = feats[0].detach().cpu().numpy().tolist()
 
-            log.info(f"image_encoder CLIP finished, vec_dim={len(vec)}")
+            log.debug("image_encoder CLIP finished")
             return vec
         except Exception as e:
             log.warn(f"image_encoder failed, image={image_data}, error={e}")
@@ -705,14 +706,14 @@ class PerceptualMemory(BaseMemory):
 
         try:
             if isinstance(audio_data, (bytes, bytearray)):
-                log.info(" audio_encoder_hash load bytes")
+                log.debug(" audio_encoder_hash load bytes")
                 data_bytes = bytes(audio_data)
             elif isinstance(audio_data, str) and os.path.exists(audio_data):
-                log.info(f" audio_encoder_hash load path, path={audio_data}")
+                log.debug(f" audio_encoder_hash load path, path={audio_data}")
                 with open(audio_data, 'rb') as f:
                     data_bytes = f.read()
             else:
-                log.info(f"audio_encoder_hash load data")
+                log.debug(f"audio_encoder_hash load data")
                 data_bytes = str(audio_data).encode('utf-8', errors='ignore')
 
 
@@ -731,10 +732,10 @@ class PerceptualMemory(BaseMemory):
         try:
 
             if isinstance(audio_data, str) and os.path.exists(audio_data):
-                log.info(f"audio_encoder load path={audio_data}")
+                log.debug(f"audio_encoder load path={audio_data}")
                 speech, sr = librosa.load(audio_data, sr=48000, mono=True)
             elif isinstance(audio_data, (bytes, bytearray)):
-                log.info(f"audio_encoder load by tempfile")
+                log.debug(f"audio_encoder load by tempfile")
                 # 临时文件方式加载
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                     tmp.write(bytes(audio_data))
@@ -746,15 +747,15 @@ class PerceptualMemory(BaseMemory):
                     log.warn(f"audio_encoder remove failed, error={e}")
                     pass
             else:
-                log.warn(f"audio_encoder type unsupported, audio={audio_data}")
+                log.warn(f"audio_encoder type unsupported, audio={audio_data}, 回退到hash")
                 return self._audio_encoder_hash(audio_data)
 
-            inputs = self._clap_processor(audios=speech, sampling_rate=48000, return_tensors="pt")
+            inputs = self._clap_processor(audio=speech, sampling_rate=48000, return_tensors="pt")
             with self._no_grad():
                 feats = self._clap_model.get_audio_features(**inputs)
             vec = feats[0].detach().cpu().numpy().tolist()
 
-            log.info(f"audio_encoder CLAP finished, vec_dim={len(vec)}")
+            log.debug("audio_encoder CLAP finished")
 
             return vec
 
@@ -794,6 +795,47 @@ class PerceptualMemory(BaseMemory):
         seed = int(hashlib.sha256(data_str.encode("utf-8", errors="ignore")).hexdigest(), 16) % (2 ** 32)
         rng = random.Random(seed)
         return [rng.random() for _ in range(dim)]
+
+    def _normalize_vector(self, vec: Any) -> List[float]:
+        """把编码器输出收敛成Qdrant接受的一维float向量。"""
+        if hasattr(vec, "detach"):
+            vec = vec.detach()
+        if hasattr(vec, "cpu"):
+            vec = vec.cpu()
+        if hasattr(vec, "numpy"):
+            vec = vec.numpy()
+        if hasattr(vec, "tolist"):
+            vec = vec.tolist()
+
+        if isinstance(vec, tuple):
+            vec = list(vec)
+
+        if isinstance(vec, list) and vec and isinstance(vec[0], (list, tuple)):
+            vec = vec[0]
+
+        def flatten(value: Any) -> List[float]:
+            if hasattr(value, "detach"):
+                value = value.detach()
+            if hasattr(value, "cpu"):
+                value = value.cpu()
+            if hasattr(value, "numpy"):
+                value = value.numpy()
+            if hasattr(value, "tolist"):
+                value = value.tolist()
+            if isinstance(value, (list, tuple)):
+                flattened = []
+                for item in value:
+                    flattened.extend(flatten(item))
+                return flattened
+            try:
+                return [float(value)]
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"编码器返回了非数字向量元素: {value!r}") from e
+
+        vector = flatten(vec)
+        if not vector:
+            raise ValueError("编码器返回了空向量")
+        return vector
 
     class _no_grad:
         def __enter__(self):
