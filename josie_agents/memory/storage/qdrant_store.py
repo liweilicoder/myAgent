@@ -8,7 +8,6 @@
 import os
 import threading
 import uuid
-from pprint import pformat
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 
@@ -265,7 +264,7 @@ class QdrantVectorStore:
                        for i in range(len(vectors))]
 
             # 构建点数据
-            log.info(f"🧲 [Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
+            log.debug(f"🧲 [Qdrant] add_vectors start: n_vectors={len(vectors)} n_meta={len(metadata)} collection={self.collection_name}")
             points = []
             for i, (vector, meta, point_id) in enumerate(zip(vectors, metadata, ids)):
                 # 确保向量是正确的维度
@@ -311,14 +310,17 @@ class QdrantVectorStore:
                 return False
 
             # 批量插入
-            log.info(f" 1️⃣ [Qdrant] upsert begin: points={len(points)}")
+            log.debug(f" 1️⃣ [Qdrant] upsert begin: points={len(points)}")
             operation_info = self.client.upsert(
                 collection_name=self.collection_name,
                 points=points,
                 wait=True
             )
 
-            log.success(f"✅ 成功添加 {len(points)} 个向量到Qdrant")
+            log.info(
+                f"✅ [Qdrant] add_vectors done: collection={self.collection_name}, "
+                f"points={len(points)}"
+            )
             return True
 
         except Exception as e:
@@ -399,9 +401,14 @@ class QdrantVectorStore:
                 }
                 results.append(result)
 
-            log.success(
-                f"🔍 Qdrant搜索完成: collection={self.collection_name}, "
-                f"len_returned={len(results)}\n{pformat(results, width=120)}"
+            top_score = results[0]["score"] if results else None
+            log.info(
+                f"🔍 [Qdrant] search_similar done: collection={self.collection_name}, "
+                f"returned={len(results)}, top_score={top_score}"
+            )
+            log.debug(
+                f"🔍 [Qdrant] search_similar result_ids="
+                f"{[result.get('metadata', {}).get('memory_id', result.get('id')) for result in results]}"
             )
             return results
 

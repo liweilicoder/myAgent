@@ -1,6 +1,8 @@
 import hashlib
 import os
 import re
+import time
+import json
 from typing import List, Dict, Optional, Any
 
 from markitdown import MarkItDown
@@ -12,6 +14,13 @@ from josie_agents.memory.embedding import get_dimension, get_text_embedder
 from josie_agents.memory.storage.qdrant_store import QdrantVectorStore, QdrantConnectionManager
 from sentence_transformers import CrossEncoder
 
+
+def _query_preview(text: str, max_len: int = 80) -> str:
+    text = " ".join((text or "").split())
+    if len(text) <= max_len:
+        return text
+    return text[:max_len] + "..."
+
 def _get_markitdown_instance():
     """
     Get a configured MarkItDown instance for document conversion.
@@ -19,7 +28,7 @@ def _get_markitdown_instance():
     try:
         return MarkItDown()
     except ImportError:
-        log.warn("[WARNING] MarkItDown not available. Install with: pip install markitdown")
+        log.warn("📄 [RAG] MarkItDown not available. Install with: pip install markitdown")
         return None
 
 
@@ -56,6 +65,7 @@ def _convert_to_markdown(path: str) -> str:
     Converts any supported file format to markdown text.
     """
     if not os.path.exists(path):
+        log.warn(f"📄 [RAG] convert skipped: file_not_found path={path}")
         return ""
 
     # 对PDF文件使用增强处理
@@ -66,16 +76,23 @@ def _convert_to_markdown(path: str) -> str:
     # 其他格式使用原有MarkItDown
     md_instance = _get_markitdown_instance()
     if md_instance is None:
+        log.warn(f"📄 [RAG] MarkItDown unavailable, using fallback reader: path={path}")
         return _fallback_text_reader(path)
 
     try:
+        t0 = time.time()
         result = md_instance.convert(path)
         text = getattr(result, "text_content", None)
         if isinstance(text, str) and text.strip():
+            log.success(
+                f"📄 [RAG] convertToMarkdown done: path={path}, ext={ext or 'unknown'}, "
+                f"chars={len(text)}, elapsed_ms={int((time.time() - t0) * 1000)}"
+            )
             return text
+        log.warn(f"📄 [RAG] MarkItDown returned empty content: path={path}, ext={ext or 'unknown'}")
         return ""
     except Exception as e:
-        log.warn(f"[WARNING] MarkItDown failed for {path}: {e}")
+        log.warn(f"📄 [RAG] MarkItDown failed, using fallback reader: path={path}, error={e}")
         return _fallback_text_reader(path)
 
 
@@ -83,26 +100,32 @@ def _enhanced_pdf_processing(path: str) -> str:
     """
     Enhanced PDF processing with post-processing cleanup.
     """
-    log.info(f"[RAG] Using enhanced PDF processing for: {path}")
+    log.debug(f"📕 [RAG] pdf_convert start: path={path}")
 
     # 使用原有MarkItDown提取
     md_instance = _get_markitdown_instance()
     if md_instance is None:
+        log.warn(f"📕 [RAG] PDF MarkItDown unavailable, using fallback reader: path={path}")
         return _fallback_text_reader(path)
 
     try:
+        t0 = time.time()
         result = md_instance.convert(path)
         raw_text = getattr(result, "text_content", None)
         if not raw_text or not raw_text.strip():
+            log.warn(f"📕 [RAG] pdf_convert empty: path={path}")
             return ""
 
         # 后处理：清理和重组文本
         cleaned_text = _post_process_pdf_text(raw_text)
-        log.success(f"[RAG] PDF post-processing completed: {len(raw_text)} -> {len(cleaned_text)} chars")
+        log.info(
+            f"📕 [RAG] pdf_convert done: path={path}, raw_chars={len(raw_text)}, "
+            f"cleaned_chars={len(cleaned_text)}, elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
         return cleaned_text
 
     except Exception as e:
-        log.warn(f"[WARNING] Enhanced PDF processing failed for {path}: {e}")
+        log.warn(f"📕 [RAG] pdf_convert failed, using fallback reader: path={path}, error={e}")
         return _fallback_text_reader(path)
 
 
@@ -190,12 +213,18 @@ def _fallback_text_reader(path: str) -> str:
     """
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-            return f.read()
-    except Exception:
+            text = f.read()
+            log.debug(f"🧯 [RAG] fallback reader done: path={path}, encoding=utf-8, chars={len(text)}")
+            return text
+    except Exception as e:
+        log.debug(f"🧯 [RAG] fallback reader utf-8 failed: path={path}, error={e}")
         try:
             with open(path, 'r', encoding='latin-1', errors='ignore') as f:
-                return f.read()
-        except Exception:
+                text = f.read()
+                log.debug(f"🧯 [RAG] fallback reader done: path={path}, encoding=latin-1, chars={len(text)}")
+                return text
+        except Exception as e2:
+            log.error(f"🧯 [RAG] fallback reader failed: path={path}, error={e2}")
             return ""
 
 
@@ -228,6 +257,7 @@ def _approx_token_len(text: str) -> int:
 
 
 def _split_paragraphs_with_headings(text: str) -> List[Dict]:
+    log.debug(f" 🌟[RAG] split_paragraphs_with_headings start: {text[:500]}")
     lines = text.splitlines()
     heading_stack: List[str] = []
     paragraphs: List[Dict] = []
@@ -269,6 +299,8 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
     flush_buf(char_pos)
     if not paragraphs:
         paragraphs = [{"content": text, "heading_path": None, "start": 0, "end": len(text)}]
+
+    log.debug(f"🌟[RAG] split_paragraphs_with_headings finish: {json.dumps(paragraphs, indent=4, ensure_ascii=False)}")
     return paragraphs
 
 
@@ -331,22 +363,34 @@ def load_and_chunk_texts(paths: List[str], chunk_size: int = 800, chunk_overlap:
     Universal document loader and chunker using MarkItDown.
     Converts all supported formats to markdown, then chunks intelligently.
     """
-    log.info(f"[RAG] Universal loader start: files={len(paths)} chunk_size={chunk_size} overlap={chunk_overlap} ns={namespace or 'default'}")
+    t0 = time.time()
+    log.debug(
+        f"🧩 [RAG] load_and_chunk start: files_num={len(paths)}, chunk_size={chunk_size}, "
+        f"overlap={chunk_overlap}, namespace={namespace or 'default'}"
+    )
     chunks: List[Dict] = []
     seen_hashes = set()
+    skipped_files = 0
+    duplicate_chunks = 0
 
     for path in paths:
         if not os.path.exists(path):
-            log.info(f"[WARNING] File not found: {path}")
+            skipped_files += 1
+            log.warn(f"🧩 [RAG] load skipped: reason=file_not_found, path={path}")
             continue
 
-        log.info(f"[RAG] Processing: {path}")
+        file_t0 = time.time()
+        before_chunks = len(chunks)
+        log.debug(f"🧩 [RAG] load file start: path={path}")
         ext = (os.path.splitext(path)[1] or '').lower()
+        if not _is_markitdown_supported_format(path):
+            log.warn(f"🧩 [RAG] unsupported extension, trying converter anyway: path={path}, ext={ext or 'unknown'}")
 
         # Convert to markdown using MarkItDown
         markdown_text = _convert_to_markdown(path)
         if not markdown_text.strip():
-            log.warn(f"[WARNING] No content extracted from: {path}")
+            skipped_files += 1
+            log.warn(f"🧩 [RAG] load skipped: reason=empty_content, path={path}")
             continue
 
         lang = _detect_lang(markdown_text)
@@ -366,6 +410,7 @@ def load_and_chunk_texts(paths: List[str], chunk_size: int = 800, chunk_overlap:
 
             content_hash = hashlib.md5(norm.encode('utf-8')).hexdigest()
             if content_hash in seen_hashes:
+                duplicate_chunks += 1
                 continue
             seen_hashes.add(content_hash)
 
@@ -389,12 +434,25 @@ def load_and_chunk_texts(paths: List[str], chunk_size: int = 800, chunk_overlap:
                 },
             })
 
-    log.success(f"[RAG] Universal loader done: total_chunks={len(chunks)}")
+        log.info(
+            f"🧩 [RAG] load file done: path={path}, doc_id={doc_id}, lang={lang}, "
+            f"chars={len(markdown_text)}, chunks={len(chunks) - before_chunks}, "
+            f"elapsed_ms={int((time.time() - file_t0) * 1000)}"
+        )
+
+    log.info(
+        f"🧩 [RAG] load_and_chunk done: files={len(paths)}, skipped_files={skipped_files}, "
+        f"chunks={len(chunks)}, duplicate_chunks={duplicate_chunks}, "
+        f"elapsed_ms={int((time.time() - t0) * 1000)}"
+    )
     return chunks
 
 
 def build_graph_from_chunks(neo4j, chunks: List[Dict]) -> None:
+    log.info(f"🕸️ [RAG] graph_build start: chunks={len(chunks)}")
     created_docs = set()
+    created_chunks = 0
+    failed_ops = 0
     for ch in chunks:
         mem_id = ch["id"]
         meta = ch.get("metadata", {})
@@ -410,7 +468,8 @@ def build_graph_from_chunks(neo4j, chunks: List[Dict]) -> None:
                     properties={"source_path": source_path, "lang": meta.get("lang")}
                 )
             except Exception:
-                pass
+                failed_ops += 1
+                log.debug(f"🕸️ [RAG] graph document entity skipped: doc_id={doc_id}")
         try:
             neo4j.add_entity(entity_id=mem_id, name=mem_id, entity_type="Memory", properties={
                 "source_path": source_path,
@@ -418,13 +477,20 @@ def build_graph_from_chunks(neo4j, chunks: List[Dict]) -> None:
                 "start": meta.get("start"),
                 "end": meta.get("end"),
             })
+            created_chunks += 1
         except Exception:
-            pass
+            failed_ops += 1
+            log.debug(f"🕸️ [RAG] graph memory entity skipped: memory_id={mem_id}")
         if doc_id:
             try:
                 neo4j.add_relationship(from_id=doc_id, to_id=mem_id, rel_type="HAS_CHUNK", properties={})
             except Exception:
-                pass
+                failed_ops += 1
+                log.debug(f"🕸️ [RAG] graph relationship skipped: doc_id={doc_id}, memory_id={mem_id}")
+    log.info(
+        f"🕸️ [RAG] graph_build done: docs={len(created_docs)}, chunks={created_chunks}, "
+        f"failed_ops={failed_ops}"
+    )
 
 
 def _preprocess_markdown_for_embedding(text: str) -> str:
@@ -432,7 +498,7 @@ def _preprocess_markdown_for_embedding(text: str) -> str:
     Preprocess markdown text for better embedding quality.
     Removes excessive markup while preserving semantic content.
     """
-    import re
+    log.debug(f"[RAG] _preprocess_markdown_for_embedding, text={text[:100]}...")
 
     # Remove markdown headers symbols but keep the text
     text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
@@ -466,6 +532,10 @@ def _create_default_vector_store(dimension: int = None) -> QdrantVectorStore:
     # 初始化Qdrant向量数据库（使用连接管理器避免重复连接）
     qdrant_config = db_config.get_qdrant_config() or {}
     qdrant_config["vector_size"] = get_dimension()
+    log.debug(
+        f"🗄️ [RAG] vector_store create done: collection={qdrant_config.get('collection_name', 'default')}, "
+        f"dimension={qdrant_config['vector_size']}"
+    )
     return QdrantConnectionManager.get_instance(**qdrant_config)
 
 # Cache functions removed - using unified embedder with internal caching
@@ -475,7 +545,7 @@ def index_chunks(
     store=None,
     chunks: List[Dict] = None,
     cache_db: Optional[str] = None,
-    batch_size: int = 64,
+    batch_size: int = 10,
     rag_namespace: str = "default"
 ) -> None:
     """
@@ -483,8 +553,14 @@ def index_chunks(
     Uses百炼 API with fallback to sentence-transformers.
     """
     if not chunks:
-        log.warn("[RAG] No chunks to index")
+        log.warn("🧠 [RAG] No chunks to index")
         return
+
+    t0 = time.time()
+    log.debug(
+        f"🧠 [RAG] index chunks start: chunks_num={len(chunks)}, batch_size={batch_size}, "
+        f"namespace={rag_namespace}"
+    )
 
     # Use unified embedding from embedding module
     embedder = get_text_embedder()
@@ -493,7 +569,7 @@ def index_chunks(
     # Create default Qdrant store if not provided
     if store is None:
         store = _create_default_vector_store(dimension)
-        log.info(f"[RAG] Created default Qdrant store with dimension {dimension}")
+        log.debug(f"🗄️ [RAG] index chunks using default vector_store: dimension={dimension}")
 
     # Preprocess markdown texts for better embeddings
     processed_texts = []
@@ -502,12 +578,13 @@ def index_chunks(
         processed_content = _preprocess_markdown_for_embedding(raw_content)
         processed_texts.append(processed_content)
 
-    log.warn(f"[RAG] Embedding start: total_texts={len(processed_texts)} batch_size={batch_size}")
+    log.debug(f"🧠 [RAG] embedding start: total_texts={len(processed_texts)}, batch_size={batch_size}, dimension={dimension}")
 
     # Batch encoding with unified embedder
     vecs: List[List[float]] = []
     for i in range(0, len(processed_texts), batch_size):
         part = processed_texts[i:i + batch_size]
+        batch_t0 = time.time()
         try:
             # Use unified embedder directly (handles caching internally)
             part_vecs = embedder.encode(part)
@@ -544,7 +621,7 @@ def index_chunks(
                         v = v.tolist()
                     v_norm = [float(x) for x in v]
                     if len(v_norm) != dimension:
-                        log.warn(f"[WARNING] 向量维度异常: 期望{dimension}, 实际{len(v_norm)}")
+                        log.warn(f"🧠 [RAG] embedding vector dimension mismatch: expected={dimension}, actual={len(v_norm)}")
                         # 用零向量填充或截断
                         if len(v_norm) < dimension:
                             v_norm.extend([0.0] * (dimension - len(v_norm)))
@@ -552,19 +629,18 @@ def index_chunks(
                             v_norm = v_norm[:dimension]
                     vecs.append(v_norm)
                 except Exception as e:
-                    log.error(f"[WARNING] 向量转换失败: {e}, 使用零向量")
+                    log.warn(f"🧠 [RAG] embedding vector conversion failed, using zero vector: error={e}")
                     vecs.append([0.0] * dimension)
 
         except Exception as e:
-            log.warn(f"[WARNING] Batch {i} encoding failed: {e}")
-            log.warn(f"[RAG] Retrying batch {i} with smaller chunks...")
+            log.warn(f"🧠 [RAG] embedding batch failed: batch_start={i}, batch_size={len(part)}, error={e}")
+            log.warn(f"🧠 [RAG] embedding retry with smaller batches: batch_start={i}")
 
             # 尝试重试：将批次分解为更小的块
             success = False
             for j in range(0, len(part), 8):  # 更小的批次
                 small_part = part[j:j + 8]
                 try:
-                    import time
                     time.sleep(2)  # 等待2秒避免频率限制
 
                     small_vecs = embedder.encode(small_part)
@@ -578,7 +654,10 @@ def index_chunks(
                         try:
                             v_norm = [float(x) for x in v]
                             if len(v_norm) != dimension:
-                                log.warn(f"[WARNING] 向量维度异常: 期望{dimension}, 实际{len(v_norm)}")
+                                log.warn(
+                                    f"🧠 [RAG] embedding vector dimension mismatch: "
+                                    f"expected={dimension}, actual={len(v_norm)}"
+                                )
                                 if len(v_norm) < dimension:
                                     v_norm.extend([0.0] * (dimension - len(v_norm)))
                                 else:
@@ -586,18 +665,21 @@ def index_chunks(
                             vecs.append(v_norm)
                             success = True
                         except Exception as e2:
-                            log.warn(f"[WARNING] 小批次向量转换失败: {e2}")
+                            log.warn(f"🧠 [RAG] embedding small batch vector conversion failed, using zero vector: error={e2}")
                             vecs.append([0.0] * dimension)
                 except Exception as e2:
-                    log.warn(f"[WARNING] 小批次 {j // 8} 仍然失败: {e2}")
+                    log.warn(f"🧠 [RAG] embedding small batch failed: batch_start={i + j}, batch_size={len(small_part)}, error={e2}")
                     # 为这个小批次创建零向量
                     for _ in range(len(small_part)):
                         vecs.append([0.0] * dimension)
 
             if not success:
-                log.warn(f"[ERROR] 批次 {i} 完全失败，使用零向量")
+                log.error(f"🧠 [RAG] embedding batch exhausted fallback: batch_start={i}, zero_vectors={len(part)}")
 
-        log.info(f"[RAG] Embedding progress: {min(i + batch_size, len(processed_texts))}/{len(processed_texts)}")
+        log.debug(
+            f"🧠 [RAG] embedding batch done: progress={min(i + batch_size, len(processed_texts))}/"
+            f"{len(processed_texts)}, elapsed_ms={int((time.time() - batch_t0) * 1000)}"
+        )
 
     # Prepare metadata with RAG tags
     metas: List[Dict] = []
@@ -617,12 +699,15 @@ def index_chunks(
         metas.append(meta)
         ids.append(ch["id"])
 
-    log.info(f"[RAG] Qdrant upsert start: n={len(vecs)}")
+    log.debug(f"🗄️ [RAG] qdrant upsert start: vectors={len(vecs)}, metadata={len(metas)}, namespace={rag_namespace}")
     success = store.add_vectors(vectors=vecs, metadata=metas, ids=ids)
     if success:
-        log.success(f"[RAG] Qdrant upsert done: {len(vecs)} vectors indexed")
+        log.info(
+            f"🧠 [RAG] index chunks done: vectors={len(vecs)}, namespace={rag_namespace}, "
+            f"elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
     else:
-        log.error(f"[RAG] Qdrant upsert failed")
+        log.error(f"🗄️ [RAG] qdrant upsert failed: vectors={len(vecs)}, namespace={rag_namespace}")
         raise RuntimeError("Failed to index vectors to Qdrant")
 
 
@@ -633,6 +718,7 @@ def embed_query(query: str) -> List[float]:
     embedder = get_text_embedder()
     dimension = get_dimension(384)
     try:
+        t0 = time.time()
         vec = embedder.encode(query)
 
         # Normalize to List[float]
@@ -648,16 +734,20 @@ def embed_query(query: str) -> List[float]:
 
         # 检查维度
         if len(result) != dimension:
-            log.warn(f"[WARNING] Query向量维度异常: 期望{dimension}, 实际{len(result)}")
+            log.warn(f"🔎 [RAG] query vector dimension mismatch: expected={dimension}, actual={len(result)}")
             # 用零向量填充或截断
             if len(result) < dimension:
                 result.extend([0.0] * (dimension - len(result)))
             else:
                 result = result[:dimension]
 
+        log.debug(
+            f"🔎 [RAG] query_embedding done: query='{_query_preview(query)}', "
+            f"dimension={len(result)}, elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
         return result
     except Exception as e:
-        log.error(f"[WARNING] Query embedding failed: {e}")
+        log.error(f"🔎 [RAG] query_embedding failed: query='{_query_preview(query)}', error={e}")
         # Return zero vector as fallback
         return [0.0] * dimension
 
@@ -674,6 +764,7 @@ def search_vectors(
     Search RAG vectors using unified embedding and Qdrant.
     """
     if not query:
+        log.warn("🔎 [RAG] search skipped: empty_query")
         return []
 
     # Create default store if not provided
@@ -692,19 +783,30 @@ def search_vectors(
         where["rag_namespace"] = rag_namespace
 
     try:
-        return store.search_similar(
+        t0 = time.time()
+        log.debug(
+            f"🔎 [RAG] vector_search start: query='{_query_preview(query)}', top_k={top_k}, "
+            f"threshold={score_threshold}, namespace={rag_namespace or 'all'}, only_rag_data={only_rag_data}"
+        )
+        results = store.search_similar(
             query_vector=qv,
             limit=top_k,
             score_threshold=score_threshold,
             where=where
         )
+        log.debug(
+            f"🔎 [RAG] vector_search done: hits={len(results)}, top_k={top_k}, "
+            f"elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
+        return results
     except Exception as e:
-        log.info(f"[WARNING] RAG search failed: {e}")
+        log.error(f"🔎 [RAG] vector_search failed: query='{_query_preview(query)}', error={e}")
         return []
 
 
 def _prompt_mqe(query: str, n: int) -> List[str]:
     try:
+        t0 = time.time()
         llm = JosieLLM()
         prompt = [
             {"role": "system",
@@ -714,21 +816,33 @@ def _prompt_mqe(query: str, n: int) -> List[str]:
         text = llm.invoke(prompt)
         lines = [ln.strip("- \t") for ln in (text or "").splitlines()]
         outs = [ln for ln in lines if ln]
+        log.info(
+            f"✨ [RAG] mqe done: query='{_query_preview(query)}', requested={n}, "
+            f"generated={len(outs[:n] or [query])}, elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
         return outs[:n] or [query]
-    except Exception:
+    except Exception as e:
+        log.warn(f"✨ [RAG] mqe failed, using original query: query='{_query_preview(query)}', error={e}")
         return [query]
 
 
 def _prompt_hyde(query: str) -> Optional[str]:
     try:
+        t0 = time.time()
         llm = JosieLLM()
         prompt = [
             {"role": "system",
              "content": "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）。"},
             {"role": "user", "content": f"问题：{query}\n请直接写一段中等长度、客观、包含关键术语的段落。"}
         ]
-        return llm.invoke(prompt)
-    except Exception:
+        text = llm.invoke(prompt)
+        log.info(
+            f"🪞 [RAG] hyde done: query='{_query_preview(query)}', chars={len(text or '')}, "
+            f"elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
+        return text
+    except Exception as e:
+        log.warn(f"🪞 [RAG] hyde failed, continuing without hypothetical answer: query='{_query_preview(query)}', error={e}")
         return None
 
 
@@ -748,6 +862,7 @@ def search_vectors_expanded(
     Search with query expansion using unified embedding and Qdrant.
     """
     if not query:
+        log.warn("🔎 [RAG] advanced_search skipped: empty_query")
         return []
 
     # Create default store if not provided
@@ -784,10 +899,17 @@ def search_vectors_expanded(
         where["rag_namespace"] = rag_namespace
 
     # collect hits across expansions
+    t0 = time.time()
+    log.info(
+        f"🔎 [RAG] advanced_search start: query='{_query_preview(query)}', expansions={len(expansions)}, "
+        f"top_k={top_k}, pool={pool}, per_query={per}, threshold={score_threshold}, "
+        f"namespace={rag_namespace or 'all'}"
+    )
     agg: Dict[str, Dict] = {}
     for q in expansions:
         qv = embed_query(q)
         hits = store.search_similar(query_vector=qv, limit=per, score_threshold=score_threshold, where=where)
+        log.debug(f"🔎 [RAG] advanced_search expansion done: query='{_query_preview(q)}', hits={len(hits)}")
         for h in hits:
             mid = h.get("metadata", {}).get("memory_id", h.get("id"))
             s = float(h.get("score", 0.0))
@@ -796,13 +918,20 @@ def search_vectors_expanded(
     # return top by score
     merged = list(agg.values())
     merged.sort(key=lambda x: float(x.get("score", 0.0)), reverse=True)
-    return merged[:top_k]
+    results = merged[:top_k]
+    log.info(
+        f"🔎 [RAG] advanced_search done: raw_unique_hits={len(merged)}, returned={len(results)}, "
+        f"elapsed_ms={int((time.time() - t0) * 1000)}"
+    )
+    return results
 
 
 def _try_load_cross_encoder(model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
     try:
+        log.debug(f"🏆 [RAG] reranker load start: model={model_name}")
         return CrossEncoder(model_name)
-    except Exception:
+    except Exception as e:
+        log.warn(f"🏆 [RAG] reranker unavailable: model={model_name}, error={e}")
         return None
 
 
@@ -810,15 +939,23 @@ def rerank_with_cross_encoder(query: str, items: List[Dict], model_name: str = "
                               top_k: int = 10) -> List[Dict]:
     ce = _try_load_cross_encoder(model_name)
     if ce is None or not items:
+        log.debug(f"🏆 [RAG] rerank skipped: items={len(items)}, top_k={top_k}")
         return items[:top_k]
     pairs = [[query, it.get("content", "")] for it in items]
     try:
+        t0 = time.time()
         scores = ce.predict(pairs)
         for it, s in zip(items, scores):
             it["rerank_score"] = float(s)
         items.sort(key=lambda x: x.get("rerank_score", x.get("score", 0.0)), reverse=True)
-        return items[:top_k]
-    except Exception:
+        results = items[:top_k]
+        log.info(
+            f"🏆 [RAG] rerank done: input={len(items)}, returned={len(results)}, "
+            f"elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
+        return results
+    except Exception as e:
+        log.warn(f"🏆 [RAG] rerank failed, returning vector order: items={len(items)}, error={e}")
         return items[:top_k]
 
 
@@ -1128,7 +1265,7 @@ def tldr_summarize(text: str, bullets: int = 3) -> Optional[str]:
 def create_rag_pipeline(
         qdrant_url: Optional[str] = None,
         qdrant_api_key: Optional[str] = None,
-        collection_name: str = "josie_agents_rag_vectors",
+        collection_name: str = "rag_knowledge_base",
         rag_namespace: str = "default"
 ) -> Dict[str, Any]:
     """
@@ -1138,6 +1275,10 @@ def create_rag_pipeline(
         Dict containing store, namespace, and helper functions
     """
     dimension = get_dimension(384)
+    log.debug(
+        f"⚙️ [RAG] pipeline create start: collection={collection_name}, "
+        f"namespace={rag_namespace}, dimension={dimension}"
+    )
 
     store = QdrantVectorStore(
         url=qdrant_url,
@@ -1146,9 +1287,15 @@ def create_rag_pipeline(
         vector_size=dimension,
         distance="cosine"
     )
+    log.success(f"⚙️ [RAG] pipeline create done: collection={collection_name}, namespace={rag_namespace}")
 
     def add_documents(file_paths: List[str], chunk_size: int = 800, chunk_overlap: int = 100):
         """Add documents to RAG pipeline"""
+        t0 = time.time()
+        log.debug(
+            f"📥 [RAG] add_documents start: file_num={len(file_paths)}, namespace={rag_namespace}, "
+            f"chunk_size={chunk_size}, overlap={chunk_overlap}"
+        )
         chunks = load_and_chunk_texts(
             paths=file_paths,
             chunk_size=chunk_size,
@@ -1161,10 +1308,18 @@ def create_rag_pipeline(
             chunks=chunks,
             rag_namespace=rag_namespace
         )
+        log.info(
+            f"📥 [RAG] add_documents done: files={len(file_paths)}, chunks={len(chunks)}, "
+            f"namespace={rag_namespace}, elapsed_ms={int((time.time() - t0) * 1000)}"
+        )
         return len(chunks)
 
     def search(query: str, top_k: int = 8, score_threshold: Optional[float] = None):
         """Search RAG knowledge base"""
+        log.info(
+            f"🔎 [RAG] pipeline search: query='{_query_preview(query)}', top_k={top_k}, "
+            f"threshold={score_threshold}, namespace={rag_namespace}"
+        )
         return search_vectors(
             store=store,
             query=query,
@@ -1181,6 +1336,11 @@ def create_rag_pipeline(
             score_threshold: Optional[float] = None
     ):
         """Advanced search with query expansion"""
+        log.info(
+            f"🔎 [RAG] pipeline advanced_search: query='{_query_preview(query)}', top_k={top_k}, "
+            f"mqe={enable_mqe}, hyde={enable_hyde}, threshold={score_threshold}, "
+            f"namespace={rag_namespace}"
+        )
         return search_vectors_expanded(
             store=store,
             query=query,
@@ -1193,7 +1353,10 @@ def create_rag_pipeline(
 
     def get_stats():
         """Get pipeline statistics"""
-        return store.get_collection_stats()
+        log.info(f"📊 [RAG] stats start: namespace={rag_namespace}, collection={collection_name}")
+        stats = store.get_collection_stats()
+        log.info(f"📊 [RAG] stats done: namespace={rag_namespace}, keys={list(stats.keys())}")
+        return stats
 
     return {
         "store": store,
