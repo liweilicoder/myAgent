@@ -305,6 +305,8 @@ def process_data(data):
         result = self.rag_tool.run({"action": "add_text",
                                     "text": raw_markdown,
                                     "namespace": DemoNamespace,
+                                    "chunk_size": 10,
+                                    "chunk_overlap": 0,
                                     "document_id": "preprocessing_demo"})
 
         log.test(f" ✅ 预处理并添加完成: {result}")
@@ -313,6 +315,7 @@ def process_data(data):
         log.test(f" 🔍 测试预处理后的检索效果:")
         search_result = self.rag_tool.run({"action": "search",
                                            "namespace": DemoNamespace,
+                                           "enable_advanced_search": False,
                                            "query": "Python函数处理数据",
                                            "limit": 1})
         log.test(f"检索结果: {search_result}")
@@ -340,7 +343,9 @@ def process_data(data):
         start_time = time.time()
 
         batch_result = self.rag_tool.batch_add_texts(
-            batch_texts,
+            texts=batch_texts,
+            chunk_size=100,
+            chunk_overlap=0,
             document_ids=[f"perf_test_{i + 1}" for i in range(10)]
         )
 
@@ -371,13 +376,13 @@ def main():
         # demo.test_markitdown_conversion(file_paths)
 
         # 3. 演示基于Markdown的智能分块
-        demo.test_markdown_chunking()
+        #demo.test_markdown_chunking()
 
         # 4. 演示面向嵌入的预处理优化
         #demo.test_embedding_optimization()
 
         # 5. 演示处理管道性能
-        # demo.test_pipeline_performance()
+        demo.test_pipeline_performance()
 
         # 清理临时文件
         shutil.rmtree(demo.temp_dir)

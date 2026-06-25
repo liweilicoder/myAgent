@@ -263,6 +263,7 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
     paragraphs: List[Dict] = []
     buf: List[str] = []
     char_pos = 0
+
     def flush_buf(end_pos: int):
         if not buf:
             return
@@ -275,6 +276,7 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
             "start": max(0, end_pos - len(content)),
             "end": end_pos,
         })
+
     for ln in lines:
         raw = ln
         if raw.strip().startswith("#"):
@@ -300,11 +302,13 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
     if not paragraphs:
         paragraphs = [{"content": text, "heading_path": None, "start": 0, "end": len(text)}]
 
-    log.debug(f"🌟[RAG] split_paragraphs_with_headings finish: {json.dumps(paragraphs, indent=4, ensure_ascii=False)}")
+    log.debug(f"🌟[RAG] split_paragraphs_with_headings finish, paragraph_num={len(paragraphs)}, ret={json.dumps(paragraphs, indent=4, ensure_ascii=False)}")
     return paragraphs
 
 
 def _chunk_paragraphs(paragraphs: List[Dict], chunk_tokens: int, overlap_tokens: int) -> List[Dict]:
+
+    log.debug(f"🌟[RAG] _chunk_paragraphs start: paragraphs_num={len(paragraphs)}, chunk_tokens={chunk_tokens}, overlap_tokens={overlap_tokens}")
     chunks: List[Dict] = []
     cur: List[Dict] = []
     cur_tokens = 0
@@ -318,6 +322,8 @@ def _chunk_paragraphs(paragraphs: List[Dict], chunk_tokens: int, overlap_tokens:
             i += 1
         else:
             # emit current chunk
+            log.debug(f"🌟[RAG] merge paragraphs start, paragraphs_num={len(cur)}, paragraphs={json.dumps(cur, indent=4, ensure_ascii=False)}")
+
             content = "\n\n".join(x["content"] for x in cur)
             start = cur[0]["start"]
             end = cur[-1]["end"]
@@ -344,6 +350,8 @@ def _chunk_paragraphs(paragraphs: List[Dict], chunk_tokens: int, overlap_tokens:
                 cur = []
                 cur_tokens = 0
     if cur:
+        log.debug(f"🌟[RAG] merge paragraphs start, paragraphs_num={len(cur)}, paragraphs={json.dumps(cur, indent=4, ensure_ascii=False)}")
+
         content = "\n\n".join(x["content"] for x in cur)
         start = cur[0]["start"]
         end = cur[-1]["end"]
@@ -354,6 +362,8 @@ def _chunk_paragraphs(paragraphs: List[Dict], chunk_tokens: int, overlap_tokens:
             "end": end,
             "heading_path": heading_path,
         })
+
+    log.debug(f"🌟[RAG] _chunk_paragraphs done: chunks={json.dumps(chunks, indent=4, ensure_ascii=False)}")
     return chunks
 
 
@@ -813,12 +823,13 @@ def _prompt_mqe(query: str, n: int) -> List[str]:
              "content": "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点。"},
             {"role": "user", "content": f"原始查询：{query}\n请给出{n}个不同表述的查询，每行一个。"}
         ]
-        text = llm.invoke(prompt)
-        lines = [ln.strip("- \t") for ln in (text or "").splitlines()]
+        text = clean_llm_resp(llm.invoke(prompt))
+
+        lines = [ln.strip("- \t") for ln in text.splitlines()]
         outs = [ln for ln in lines if ln]
         log.info(
-            f"✨ [RAG] mqe done: query='{_query_preview(query)}', requested={n}, "
-            f"generated={len(outs[:n] or [query])}, elapsed_ms={int((time.time() - t0) * 1000)}"
+            f"✨ [RAG] MQE 扩展完成: query='{_query_preview(query)}', requested={n}, "
+            f"generated={outs[:n]}, elapsed_ms={int((time.time() - t0) * 1000)}"
         )
         return outs[:n] or [query]
     except Exception as e:
@@ -835,15 +846,21 @@ def _prompt_hyde(query: str) -> Optional[str]:
              "content": "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）。"},
             {"role": "user", "content": f"问题：{query}\n请直接写一段中等长度、客观、包含关键术语的段落。"}
         ]
-        text = llm.invoke(prompt)
+        text = clean_llm_resp(llm.invoke(prompt))
+
         log.info(
-            f"🪞 [RAG] hyde done: query='{_query_preview(query)}', chars={len(text or '')}, "
-            f"elapsed_ms={int((time.time() - t0) * 1000)}"
+            f"🪞 [RAG] HYDE 扩展完成: query='{_query_preview(query)}', chars={len(text or '')}, "
+            f"generated={text}, elapsed_ms={int((time.time() - t0) * 1000)}"
         )
         return text
     except Exception as e:
         log.warn(f"🪞 [RAG] hyde failed, continuing without hypothetical answer: query='{_query_preview(query)}', error={e}")
         return None
+
+def clean_llm_resp(text: str) -> Optional[str]:
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL | re.IGNORECASE)
+    text = "\n".join(line for line in text.splitlines() if line.strip())
+    return text
 
 
 def search_vectors_expanded(
@@ -901,7 +918,7 @@ def search_vectors_expanded(
     # collect hits across expansions
     t0 = time.time()
     log.info(
-        f"🔎 [RAG] advanced_search start: query='{_query_preview(query)}', expansions={len(expansions)}, "
+        f"🔎 [RAG] advanced_search start: 原始查询='{_query_preview(query)}', 扩展查询={expansions}, "
         f"top_k={top_k}, pool={pool}, per_query={per}, threshold={score_threshold}, "
         f"namespace={rag_namespace or 'all'}"
     )

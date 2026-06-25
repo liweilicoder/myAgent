@@ -326,8 +326,16 @@ class RAGTool(BaseTool):
         except Exception as e:
             return f"❌ 添加文本失败: {str(e)}"
 
-    def _search(self, query: str, limit: int = 5, min_score: float = 0.1, enable_advanced_search: bool = True,
-                max_chars: int = 1200, include_citations: bool = True, namespace: Optional[str] = None,
+    def _search(self,
+                query: str,
+                limit: int = 5,
+                min_score: float = 0.1,
+                enable_advanced_search: bool = True,
+                enable_mqe: bool = False,
+                enable_hyde: bool = False,
+                max_chars: int = 1200,
+                include_citations: bool = True,
+                namespace: Optional[str] = None,
                 **kwargs) -> str:
         """搜索知识库"""
         try:
@@ -342,6 +350,22 @@ class RAGTool(BaseTool):
                     query=query,
                     top_k=limit,
                     enable_mqe=True,
+                    enable_hyde=True,
+                    score_threshold=min_score if min_score > 0 else None
+                )
+            elif enable_mqe:
+                results = pipeline["search_advanced"](
+                    query=query,
+                    top_k=limit,
+                    enable_mqe=True,
+                    enable_hyde=False,
+                    score_threshold=min_score if min_score > 0 else None
+                )
+            elif enable_hyde:
+                results = pipeline["search_advanced"](
+                    query=query,
+                    top_k=limit,
+                    enable_mqe=False,
                     enable_hyde=True,
                     score_threshold=min_score if min_score > 0 else None
                 )
