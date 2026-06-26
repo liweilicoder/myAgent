@@ -247,10 +247,10 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
                                             "enable_mqe": True})
             mqe_time = time.time() - start_time
 
-            log.test(f"基础搜索耗时: {basic_time:.3f}秒")
-            log.test(f"MQE搜索耗时: {mqe_time:.3f}秒")
-            log.test(f"基础结果: {basic_result[:150]}...")
-            log.test(f"MQE结果: {mqe_result[:150]}...")
+            log.test(f"基础搜索「{query}」耗时: {basic_time:.3f}秒")
+            log.test(f"MQE搜索「{query}」耗时: {mqe_time:.3f}秒")
+            log.test(f"基础结果: {basic_result}...")
+            log.test(f"MQE结果: {mqe_result}...")
             log.test(f"性能对比: MQE搜索耗时是基础搜索的 {mqe_time / basic_time:.1f} 倍")
 
     def test_hyde_search(self):
@@ -278,7 +278,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             # 使用智能问答（内部使用HyDE）
             start_time = time.time()
             hyde_result = self.rag_tool.run({"action": "search",
-                                             "question": query,
+                                             "query": query,
                                              "namespace": DemoNamespace,
                                              "limit": 3,
                                              "enable_advanced_search": False,
@@ -286,7 +286,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             hyde_time = time.time() - start_time
 
             log.test(f"HyDE问答耗时: {hyde_time:.3f}秒")
-            log.test(f"HyDE结果: {hyde_result[:300]}...")
+            log.test(f"HyDE结果: {hyde_result}...")
 
     def test_combined_advanced_search(self):
         """演示组合高级搜索"""
@@ -331,8 +331,8 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             combined_time = time.time() - start_time
 
             log.test(f"组合搜索耗时: {combined_time:.3f}秒")
-            log.test(f"搜索片段: {search_result[:200]}...")
-            log.test(f"智能问答: {qa_result[:400]}...")
+            log.test(f"搜索片段: {search_result}...")
+            log.test(f"智能问答: {qa_result}...")
 
     def test_search_performance_analysis(self):
         """演示搜索性能分析"""
@@ -379,7 +379,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
                 query_time = time.time() - start_time
                 strategy_times.append(query_time)
 
-                log.test(f"  查询: '{query[:20]}...' 耗时: {query_time:.3f}秒")
+                log.test(f" {strategy_name}查询: '{query[:20]}...' 耗时: {query_time:.3f}秒")
 
             avg_time = sum(strategy_times) / len(strategy_times)
             performance_results[strategy_name] = {
@@ -387,7 +387,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
                 "average": avg_time
             }
 
-            log.test(f"  平均耗时: {avg_time:.3f}秒")
+            log.test(f"  {strategy_name}平均耗时: {avg_time:.3f}秒")
 
         # 性能对比分析
         log.test(f" 📈 性能对比分析:")
@@ -400,7 +400,8 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
         log.test(f"分析: 高级搜索通过多策略提升检索质量，耗时增加 {((advanced_avg / basic_avg - 1) * 100):.0f}%")
 
         # 获取系统统计
-        stats = self.rag_tool.run({"action": "stats"})
+        stats = self.rag_tool.run({"action": "stats",
+                                   "namespace": DemoNamespace})
         log.test(f" 📊 系统统计: {stats}")
 
 
@@ -414,19 +415,22 @@ def main():
         demo = AdvancedSearchDemo()
 
         # 1. 基础搜索演示
-        demo.test_basic_search()
+        #demo.test_basic_search()
 
         # 2. MQE搜索演示
-        demo.test_mqe_search()
+        #demo.test_mqe_search()
 
         # 3. HyDE搜索演示
-        demo.test_hyde_search()
+        #demo.test_hyde_search()
 
         # 4. 组合高级搜索演示
-        demo.test_combined_advanced_search()
+        #demo.test_combined_advanced_search()
 
         # 5. 搜索性能分析
-        demo.test_search_performance_analysis()
+        #demo.test_search_performance_analysis()
+
+        ret = demo.rag_tool._clear_knowledge_base(confirm=True)
+        log.test(f" 🧹 清空知识库{ret}")
 
     except Exception as e:
         log.error(f"\n❌ 演示过程中发生错误: {e}")
