@@ -424,10 +424,10 @@ def main():
         #demo.test_hyde_search()
 
         # 4. 组合高级搜索演示
-        #demo.test_combined_advanced_search()
+        demo.test_combined_advanced_search()
 
         # 5. 搜索性能分析
-        #demo.test_search_performance_analysis()
+        demo.test_search_performance_analysis()
 
         ret = demo.rag_tool._clear_knowledge_base(confirm=True)
         log.test(f" 🧹 清空知识库{ret}")

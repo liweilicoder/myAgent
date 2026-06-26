@@ -152,6 +152,8 @@ class MarkitdownPipelineDemo:
             # 使用RAGTool添加文档，内部会调用MarkItDown
             result = self.rag_tool.run({"action": "add_document",
                                         "namespace":DemoNamespace,
+                                        "chunk_size": 30,
+                                        "chunk_overlap": 10,
                                         "file_path": file_path})
 
             process_time = time.time() - start_time
@@ -370,10 +372,10 @@ def main():
         demo = MarkitdownPipelineDemo()
 
         # 1. 创建多格式示例文档
-        # file_paths = demo.create_sample_documents()
+        file_paths = demo.create_sample_documents()
 
         # 2. 演示MarkItDown转换过程
-        # demo.test_markitdown_conversion(file_paths)
+        demo.test_markitdown_conversion(file_paths)
 
         # 3. 演示基于Markdown的智能分块
         #demo.test_markdown_chunking()
@@ -382,7 +384,7 @@ def main():
         #demo.test_embedding_optimization()
 
         # 5. 演示处理管道性能
-        demo.test_pipeline_performance()
+        #demo.test_pipeline_performance()
 
         # 清理临时文件
         shutil.rmtree(demo.temp_dir)

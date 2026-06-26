@@ -18,7 +18,7 @@ rag.run({"action": "add_document", "file_path": "document.pdf"})
 answer = rag.run({"action": "ask", "question": "什么是机器学习？"})
 ```
 """
-import os
+import os, re
 import time
 from typing import Dict, Any, Optional, List
 
@@ -500,6 +500,14 @@ class RAGTool(BaseTool):
             # 5. 调用 LLM 生成答案
             llm_start = time.time()
             answer = self.llm.invoke(enhanced_prompt)
+
+            def clean_llm_resp(text: str) -> Optional[str]:
+                text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL | re.IGNORECASE)
+                text = "\n".join(line for line in text.splitlines() if line.strip())
+                return text
+
+            answer = clean_llm_resp(answer)
+
             llm_time = int((time.time() - llm_start) * 1000)
 
             if not answer or not answer.strip():

@@ -23,7 +23,7 @@ class MemoryTool(BaseTool):
         memory_types: List[str] = None,
     ):
         super().__init__(
-            name="Memory",
+            name="memory",
             description="记忆工具 - 可以存储和检索对话历史、知识和经验"
         )
 
