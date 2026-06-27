@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Any, Tuple
 import gradio as gr
 from josie_agents.tools.builtin.memory_tool import MemoryTool
 from josie_agents.tools.builtin.rag_tool import RAGTool
+import josie_agents.utils.log as log
 
 load_dotenv()
 
@@ -258,8 +259,7 @@ def create_gradio_ui():
         if pdf_file is None:
             return "❌ 请上传PDF文件"
 
-        # Gradio上传的文件是临时文件对象
-        pdf_path = pdf_file.name
+        pdf_path = pdf_file if isinstance(pdf_file, str) else pdf_file.name
         result = assistant_state["assistant"].load_document(pdf_path)
 
         if result["success"]:
@@ -267,13 +267,18 @@ def create_gradio_ui():
         else:
             return f"❌ {result['message']}"
 
-    def chat(message: str, history: List) -> Tuple[str, List]:
+    def chat(message: str, history: List[Dict[str, str]]) -> Tuple[str, List[Dict[str, str]]]:
         """聊天功能"""
-        if assistant_state["assistant"] is None:
-            return "", history + [[message, "❌ 请先初始化助手并加载文档"]]
+        history = history or []
 
-        if not message.strip():
+        if not message or not message.strip():
             return "", history
+
+        if assistant_state["assistant"] is None:
+            return "", history + [
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": "❌ 请先初始化助手并加载文档"},
+            ]
 
         # 判断是技术问题还是回顾问题
         if any(keyword in message for keyword in ["之前", "学过", "回顾", "历史", "记得"]):
@@ -285,8 +290,10 @@ def create_gradio_ui():
             response = assistant_state["assistant"].ask(message)
             response = f"💡 **回答**\n\n{response}"
 
-        history.append([message, response])
-        return "", history
+        return "", history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": response},
+        ]
 
     def add_note_ui(note_content: str, concept: str) -> str:
         """添加笔记"""
@@ -330,11 +337,11 @@ def create_gradio_ui():
         return result
 
     # 创建Gradio界面
-    with gr.Blocks(title="智能文档问答助手", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="智能文档问答助手") as demo:
         gr.Markdown("""
         # 📚 智能文档问答助手
 
-        基于HelloAgents的智能文档问答系统，支持：
+        基于JosieAgents的智能文档问答系统，支持：
         - 📄 加载PDF文档并构建知识库
         - 💬 智能问答（基于RAG）
         - 📝 学习笔记记录
@@ -369,7 +376,7 @@ def create_gradio_ui():
             chatbot = gr.Chatbot(
                 label="对话历史",
                 height=400,
-                bubble_full_width=False
+                layout="bubble"
             )
             with gr.Row():
                 msg_input = gr.Textbox(
@@ -424,22 +431,23 @@ def create_gradio_ui():
 
 def main():
     """主函数 - 启动Gradio Web UI"""
-    print("\n" + "="*60)
-    print("智能文档问答助手")
-    print("="*60)
-    print("正在启动Web界面...\n")
+    log.delimiter("\n" + "="*60)
+    log.delimiter("智能文档问答助手")
+    log.delimiter("="*60)
+    log.delimiter("正在启动Web界面...\n")
 
     demo = create_gradio_ui()
+    server_name = os.getenv("GRADIO_SERVER_NAME", "127.0.0.1")
+    server_port = int(os.getenv("GRADIO_SERVER_PORT", "7860"))
     demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
+        server_name=server_name,
+        server_port=server_port,
         share=False,
-        show_error=True
+        show_error=True,
+        theme=gr.themes.Soft()
     )
 
 
 if __name__ == "__main__":
     main()
-
-
 

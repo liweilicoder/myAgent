@@ -159,8 +159,8 @@ class SemanticMemory(BaseMemory):
 
         except Exception as e:
             log.error(f"❌ 数据库初始化失败: {e}")
-            log.info("💡 请检查数据库配置和网络连接")
-            log.info("💡 参考 DATABASE_SETUP_GUIDE.md 进行配置")
+            log.error("💡 请检查数据库配置和网络连接")
+            log.error("💡 参考 DATABASE_SETUP_GUIDE.md 进行配置")
             raise
 
     def _init_nlp(self):

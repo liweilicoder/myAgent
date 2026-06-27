@@ -82,15 +82,15 @@ class Neo4jGraphStore:
 
         except AuthError as e:
             log.error(f"❌ Neo4j认证失败: {e}")
-            log.info("💡 请检查用户名和密码是否正确")
+            log.error("💡 请检查用户名和密码是否正确")
             raise
         except ServiceUnavailable as e:
             log.error(f"❌ Neo4j服务不可用: {e}")
             if "localhost" in self.uri:
-                log.info("💡 本地连接失败，可以考虑使用Neo4j Aura云服务")
-                log.info("💡 或启动本地服务: docker run -p 7474:7474 -p 7687:7687 neo4j:5.14")
+                log.error("💡 本地连接失败，可以考虑使用Neo4j Aura云服务")
+                log.error("💡 或启动本地服务: docker run -p 7474:7474 -p 7687:7687 neo4j:5.14")
             else:
-                log.info("💡 请检查URL和网络连接")
+                log.error("💡 请检查URL和网络连接")
             raise
         except Exception as e:
             log.error(f"❌ Neo4j连接失败: {e}")
