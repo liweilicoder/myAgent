@@ -1,0 +1,15 @@
+{
+  "session_info": {
+    "session_id": "session_20260628_163041",
+    "user_id": "jesse",
+    "start_time": "2026-06-28T16:31:00.500342",
+    "duration_seconds": 2611.996668
+  },
+  "learning_metrics": {
+    "documents_loaded": 3,
+    "questions_asked": 5,
+    "concepts_learned": 1
+  },
+  "memory_summary": "📊 记忆系统摘要\n总记忆数: 14\n分类记忆数: 工作记忆 5 条, 情景记忆 8 条, 语义记忆 1 条, 感知记忆 0 条\n当前会话: session_20260628_163143\n对话轮次: 0\n\n📋 记忆类型分布:\n  • 工作记忆: 5 条 (平均重要性: 0.60)\n  • 情景记忆: 8 条 (平均重要性: 0.78)\n  • 语义记忆: 1 条 (平均重要性: 0.80)\n\n⭐ 重要记忆 (前10条):\n  1. 加载了文档《ChatGPT发展历程.md》 (重要性: 0.90)\n  2. 加载了文档《Agent技术发展历程.md》 (重要性: 0.90)\n  3. 加载了文档《ChatGPT 发展历程.pdf》 (重要性: 0.90)\n  4. 加载了文档《ChatGPT发展历程.txt》 (重要性: 0.90)\n  5. OpenAI 提出RLHF（基于人类反馈的强化学习） 三层训练流程：监督微调 SFT、训练人类偏好奖励模型、PPO 强化... (重要性: 0.80)\n  6. 关于'ChatGPT 的全称是什么？'的学习 (重要性: 0.70)\n  7. 关于'ChatGPT 创始人是谁？'的学习 (重要性: 0.70)\n  8. 关于'ChatGPT 与Agent的关联关系'的学习 (重要性: 0.70)\n  9. 关于'Agent技术发展阶段'的学习 (重要性: 0.70)\n  10. 关于'OpenAI 的创始团队成员信息'的学习 (重要性: 0.70)",
+  "rag_status": "📊 **RAG 知识库统计**\n📝 命名空间: default\n📋 集合名称: rag_knowledge_base\n📂 存储根路径: ./knowledge_base\n📦 存储类型: qdrant\n📊 文档分块数: 72\n🔢 向量维度: 1024\n📎 距离度量: Cosine\n\n🟢 **系统状态**\n✅ RAG 管道: 正常\n✅ LLM 连接: 正常"
+}

@@ -5,14 +5,26 @@ import time
 import json
 from typing import List, Dict, Optional, Any
 
-from markitdown import MarkItDown
-from langdetect import detect
 import josie_agents.utils.log as log
 from josie_agents.core.database_config import get_database_config
 from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.memory.embedding import get_dimension, get_text_embedder
 from josie_agents.memory.storage.qdrant_store import QdrantVectorStore, QdrantConnectionManager
-from sentence_transformers import CrossEncoder
+
+try:
+    from markitdown import MarkItDown
+except ImportError:
+    MarkItDown = None
+
+try:
+    from langdetect import detect
+except ImportError:
+    detect = None
+
+try:
+    from sentence_transformers import CrossEncoder
+except ImportError:
+    CrossEncoder = None
 
 
 def _query_preview(text: str, max_len: int = 80) -> str:
@@ -25,10 +37,13 @@ def _get_markitdown_instance():
     """
     Get a configured MarkItDown instance for document conversion.
     """
+    if MarkItDown is None:
+        log.warn("📄 [RAG] MarkItDown not available. Install with: pip install markitdown")
+        return None
     try:
         return MarkItDown()
-    except ImportError:
-        log.warn("📄 [RAG] MarkItDown not available. Install with: pip install markitdown")
+    except Exception as e:
+        log.warn(f"📄 [RAG] MarkItDown unavailable: error={e}")
         return None
 
 
@@ -105,8 +120,8 @@ def _enhanced_pdf_processing(path: str) -> str:
     # 使用原有MarkItDown提取
     md_instance = _get_markitdown_instance()
     if md_instance is None:
-        log.warn(f"📕 [RAG] PDF MarkItDown unavailable, using fallback reader: path={path}")
-        return _fallback_text_reader(path)
+        log.warn(f"📕 [RAG] PDF MarkItDown unavailable, skip unsafe raw PDF read: path={path}")
+        return ""
 
     try:
         t0 = time.time()
@@ -118,6 +133,13 @@ def _enhanced_pdf_processing(path: str) -> str:
 
         # 后处理：清理和重组文本
         cleaned_text = _post_process_pdf_text(raw_text)
+        if not _is_extracted_pdf_text_usable(cleaned_text):
+            log.warn(
+                f"📕 [RAG] pdf_convert rejected unsafe extracted text: path={path}, "
+                f"raw_chars={len(raw_text)}, cleaned_chars={len(cleaned_text)}"
+            )
+            return ""
+
         log.info(
             f"📕 [RAG] pdf_convert done: path={path}, raw_chars={len(raw_text)}, "
             f"cleaned_chars={len(cleaned_text)}, elapsed_ms={int((time.time() - t0) * 1000)}"
@@ -125,8 +147,8 @@ def _enhanced_pdf_processing(path: str) -> str:
         return cleaned_text
 
     except Exception as e:
-        log.warn(f"📕 [RAG] pdf_convert failed, using fallback reader: path={path}, error={e}")
-        return _fallback_text_reader(path)
+        log.warn(f"📕 [RAG] pdf_convert failed, skip unsafe raw PDF read: path={path}, error={e}")
+        return ""
 
 
 def _post_process_pdf_text(text: str) -> str:
@@ -207,10 +229,51 @@ def _post_process_pdf_text(text: str) -> str:
 
     return '\n\n'.join(paragraphs)
 
+def _is_extracted_pdf_text_usable(text: str) -> bool:
+    """
+    Reject PDF internals masquerading as extracted text.
+    """
+    if not text or not text.strip():
+        return False
+
+    lowered = text.lower()
+    pdf_stream_markers = (
+        "/flatedecode",
+        "flatedecode",
+        "endstream",
+        "endobj",
+        " obj",
+        "xref",
+        "trailer",
+        "startxref",
+    )
+    marker_hits = sum(1 for marker in pdf_stream_markers if marker in lowered)
+    if marker_hits >= 2:
+        return False
+
+    total_chars = len(text)
+    control_chars = sum(
+        1
+        for ch in text
+        if ord(ch) < 32 and ch not in ("\n", "\r", "\t")
+    )
+    if total_chars and control_chars / total_chars > 0.01:
+        return False
+
+    printable_chars = sum(1 for ch in text if ch.isprintable() or ch in ("\n", "\r", "\t"))
+    if total_chars and printable_chars / total_chars < 0.95:
+        return False
+
+    return True
+
 def _fallback_text_reader(path: str) -> str:
     """
     Simple fallback reader for basic text files when MarkItDown is unavailable.
     """
+    if (os.path.splitext(path)[1] or '').lower() == '.pdf':
+        log.warn(f"🧯 [RAG] fallback reader skipped for PDF to avoid binary stream pollution: path={path}")
+        return ""
+
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             text = f.read()
@@ -230,6 +293,8 @@ def _fallback_text_reader(path: str) -> str:
 
 
 def _detect_lang(sample: str) -> str:
+    if detect is None:
+        return "unknown"
     try:
         return detect(sample[:1000]) if sample else "unknown"
     except Exception:
@@ -279,7 +344,8 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
 
     for ln in lines:
         raw = ln
-        if raw.strip().startswith("#"):
+        stripped = raw.strip()
+        if stripped.startswith("#"):
             # heading line
             flush_buf(char_pos)
             level = len(raw) - len(raw.lstrip('#'))
@@ -292,7 +358,12 @@ def _split_paragraphs_with_headings(text: str) -> List[Dict]:
             char_pos += len(raw) + 1
             continue
         # paragraph accumulation
-        if raw.strip() == "":
+        is_markdown_rule = (
+            len(stripped) >= 3 and
+            len(set(stripped)) == 1 and
+            stripped[0] in "-*_"
+        )
+        if stripped == "" or is_markdown_rule:
             flush_buf(char_pos)
             buf = []
         else:
@@ -344,8 +415,13 @@ def _chunk_paragraphs(paragraphs: List[Dict], chunk_tokens: int, overlap_tokens:
                         break
                     kept.append(x)
                     kept_tokens += t
-                cur = list(reversed(kept))
-                cur_tokens = kept_tokens
+                p_tokens = _approx_token_len(paragraphs[i]["content"]) or 1
+                if kept_tokens and kept_tokens + p_tokens <= chunk_tokens:
+                    cur = list(reversed(kept))
+                    cur_tokens = kept_tokens
+                else:
+                    cur = []
+                    cur_tokens = 0
             else:
                 cur = []
                 cur_tokens = 0
@@ -944,6 +1020,9 @@ def search_vectors_expanded(
 
 
 def _try_load_cross_encoder(model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+    if CrossEncoder is None:
+        log.warn(f"🏆 [RAG] reranker unavailable: missing sentence-transformers, model={model_name}")
+        return None
     try:
         log.debug(f"🏆 [RAG] reranker load start: model={model_name}")
         return CrossEncoder(model_name)

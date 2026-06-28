@@ -47,6 +47,8 @@ class PDFLearningAssistant:
 
         # 当前加载的文档
         self.current_document = None
+        self.loaded_documents: List[Dict[str, str]] = []
+        self.notes: List[Dict[str, str]] = []
 
     def load_document(self, pdf_path: str) -> Dict[str, Any]:
         """加载PDF文档到知识库
@@ -67,20 +69,25 @@ class PDFLearningAssistant:
             result = self.rag_tool.run({
                 "action":"add_document",
                 "file_path":pdf_path,
-                "chunk_size":1000,
-                "chunk_overlap":200
+                "chunk_size":200,
+                "chunk_overlap":30
             })
 
             process_time = time.time() - start_time
 
             # RAG工具返回的是字符串消息
-            self.current_document = os.path.basename(pdf_path)
+            document_name = os.path.basename(pdf_path)
+            self.current_document = document_name
+            self.loaded_documents.append({
+                "name": document_name,
+                "loaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
             self.stats["documents_loaded"] += 1
 
             # 记录到学习记忆
             self.memory_tool.run({
                 "action":"add",
-                "content":f"加载了文档《{self.current_document}》",
+                "content":f"加载了文档《{document_name}》",
                 "memory_type":"episodic",
                 "importance":0.9,
                 "event_type":"document_loaded",
@@ -90,13 +97,24 @@ class PDFLearningAssistant:
             return {
                 "success": True,
                 "message": f"加载成功！(耗时: {process_time:.1f}秒)",
-                "document": self.current_document
+                "document": document_name
             }
         except Exception as e:
             return {
                 "success": False,
                 "message": f"加载失败: {str(e)}"
             }
+
+    def get_loaded_documents_text(self) -> str:
+        """获取当前会话已加载文档文本"""
+        if not self.loaded_documents:
+            return "暂无已加载文档"
+
+        lines = []
+        for index, document in enumerate(reversed(self.loaded_documents), 1):
+            marker = "当前" if document["name"] == self.current_document else "已加载"
+            lines.append(f"{index}. [{marker}] {document['name']} - {document['loaded_at']}")
+        return "\n".join(lines)
 
     def ask(self, question: str, use_advanced_search: bool = True) -> str:
         """向文档提问
@@ -142,23 +160,42 @@ class PDFLearningAssistant:
 
         return answer
 
-    def add_note(self, content: str, concept: Optional[str] = None):
+    def add_note(self, content: str, concept: Optional[str] = None) -> Dict[str, str]:
         """添加学习笔记
 
         Args:
             content: 笔记内容
             concept: 相关概念（可选）
         """
+        note = {
+            "content": content.strip(),
+            "concept": (concept or "").strip() or "general",
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
         self.memory_tool.run({
             "action":"add",
-            "content":content,
+            "content":note["content"],
             "memory_type":"semantic",
             "importance":0.8,
-            "concept":concept or "general",
+            "concept":note["concept"],
             "session_id":self.session_id
         })
 
+        self.notes.append(note)
         self.stats["concepts_learned"] += 1
+        return note
+
+    def get_notes_text(self) -> str:
+        """获取当前会话已添加笔记文本"""
+        if not self.notes:
+            return "暂无已添加笔记"
+
+        lines = []
+        for index, note in enumerate(reversed(self.notes), 1):
+            lines.append(f"{index}. [{note['created_at']}] {note['content']}")
+            if note["concept"] != "general":
+                lines.append(f"   相关概念: {note['concept']}")
+        return "\n\n".join(lines)
 
     def recall(self, query: str, limit: int = 5) -> str:
         """回顾学习历程
@@ -244,28 +281,29 @@ def create_gradio_ui():
     # 全局助手实例
     assistant_state = {"assistant": None}
 
-    def init_assistant(user_id: str) -> str:
+    def init_assistant(user_id: str) -> Tuple[str, str, str]:
         """初始化助手"""
         if not user_id:
             user_id = "web_user"
         assistant_state["assistant"] = PDFLearningAssistant(user_id=user_id)
-        return f"✅ 助手已初始化 (用户: {user_id})"
+        return f"✅ 助手已初始化 (用户: {user_id})", "暂无已添加笔记", "暂无已加载文档"
 
-    def load_pdf(pdf_file) -> str:
+    def load_pdf(pdf_file) -> Tuple[str, str]:
         """加载PDF文件"""
         if assistant_state["assistant"] is None:
-            return "❌ 请先初始化助手"
+            return "❌ 请先初始化助手", "暂无已加载文档"
 
         if pdf_file is None:
-            return "❌ 请上传PDF文件"
+            return "❌ 请上传PDF文件", assistant_state["assistant"].get_loaded_documents_text()
 
         pdf_path = pdf_file if isinstance(pdf_file, str) else pdf_file.name
         result = assistant_state["assistant"].load_document(pdf_path)
+        loaded_documents_text = assistant_state["assistant"].get_loaded_documents_text()
 
         if result["success"]:
-            return f"✅ {result['message']}\n📄 文档: {result['document']}"
+            return f"✅ {result['message']}\n📄 文档: {result['document']}", loaded_documents_text
         else:
-            return f"❌ {result['message']}"
+            return f"❌ {result['message']}", loaded_documents_text
 
     def chat(message: str, history: List[Dict[str, str]]) -> Tuple[str, List[Dict[str, str]]]:
         """聊天功能"""
@@ -295,16 +333,20 @@ def create_gradio_ui():
             {"role": "assistant", "content": response},
         ]
 
-    def add_note_ui(note_content: str, concept: str) -> str:
+    def add_note_ui(note_content: str, concept: str) -> Tuple[str, str, str, str]:
         """添加笔记"""
         if assistant_state["assistant"] is None:
-            return "❌ 请先初始化助手"
+            return "❌ 请先初始化助手", "暂无已添加笔记", note_content, concept
+
+        note_content = note_content or ""
+        concept = concept or ""
 
         if not note_content.strip():
-            return "❌ 笔记内容不能为空"
+            return "❌ 笔记内容不能为空", assistant_state["assistant"].get_notes_text(), note_content, concept
 
-        assistant_state["assistant"].add_note(note_content, concept or None)
-        return f"✅ 笔记已保存: {note_content[:50]}..."
+        note = assistant_state["assistant"].add_note(note_content, concept or None)
+        notes_text = assistant_state["assistant"].get_notes_text()
+        return f"✅ 笔记已保存: {note['content'][:50]}...", notes_text, "", ""
 
     def get_stats_ui() -> str:
         """获取统计信息"""
@@ -342,7 +384,7 @@ def create_gradio_ui():
         # 📚 智能文档问答助手
 
         基于JosieAgents的智能文档问答系统，支持：
-        - 📄 加载PDF文档并构建知识库
+        - 📄 加载文档并构建知识库
         - 💬 智能问答（基于RAG）
         - 📝 学习笔记记录
         - 🧠 学习历程回顾
@@ -353,23 +395,33 @@ def create_gradio_ui():
             with gr.Row():
                 user_id_input = gr.Textbox(
                     label="用户ID",
-                    placeholder="输入你的用户ID（可选，默认为web_user）",
-                    value="web_user"
+                    placeholder="输入你的用户ID（可选）",
+                    value="jesse"
                 )
                 init_btn = gr.Button("初始化助手", variant="primary")
 
             init_output = gr.Textbox(label="初始化状态", interactive=False)
-            init_btn.click(init_assistant, inputs=[user_id_input], outputs=[init_output])
 
-            gr.Markdown("### 📄 加载PDF文档")
-            pdf_upload = gr.File(
-                label="上传PDF文件",
-                file_types=[".pdf"],
-                type="filepath"
-            )
-            load_btn = gr.Button("加载文档", variant="primary")
-            load_output = gr.Textbox(label="加载状态", interactive=False)
-            load_btn.click(load_pdf, inputs=[pdf_upload], outputs=[load_output])
+            gr.Markdown("### 📄 加载文档")
+            with gr.Group():
+                gr.Markdown("#### 新加载文档")
+                pdf_upload = gr.File(
+                    label="上传文件",
+                    file_types=[".pdf",".word",".txt", ".md"],
+                    type="filepath"
+                )
+                load_btn = gr.Button("加载新文档", variant="primary")
+                load_output = gr.Textbox(label="加载状态", interactive=False)
+
+            with gr.Group():
+                gr.Markdown("#### 已加载文档")
+                loaded_documents_output = gr.Textbox(
+                    label="当前会话文档",
+                    value="暂无已加载文档",
+                    lines=6,
+                    interactive=False
+                )
+            load_btn.click(load_pdf, inputs=[pdf_upload], outputs=[load_output, loaded_documents_output])
 
         with gr.Tab("💬 智能问答"):
             gr.Markdown("### 向文档提问或回顾学习历程")
@@ -402,18 +454,38 @@ def create_gradio_ui():
 
         with gr.Tab("📝 学习笔记"):
             gr.Markdown("### 记录学习心得和重要概念")
-            note_content = gr.Textbox(
-                label="笔记内容",
-                placeholder="输入你的学习笔记...",
-                lines=3
+            with gr.Group():
+                gr.Markdown("#### 新增笔记")
+                note_content = gr.Textbox(
+                    label="笔记内容",
+                    placeholder="输入你的学习笔记...",
+                    lines=3
+                )
+                concept_input = gr.Textbox(
+                    label="相关概念（可选）",
+                    placeholder="例如：transformer, attention"
+                )
+                note_btn = gr.Button("保存笔记", variant="primary")
+                note_output = gr.Textbox(label="保存状态", interactive=False)
+
+            with gr.Group():
+                gr.Markdown("#### 已添加笔记")
+                notes_output = gr.Textbox(
+                    label="当前会话笔记",
+                    value="暂无已添加笔记",
+                    lines=8,
+                    interactive=False
+                )
+            note_btn.click(
+                add_note_ui,
+                inputs=[note_content, concept_input],
+                outputs=[note_output, notes_output, note_content, concept_input]
             )
-            concept_input = gr.Textbox(
-                label="相关概念（可选）",
-                placeholder="例如：transformer, attention"
+            init_btn.click(
+                init_assistant,
+                inputs=[user_id_input],
+                outputs=[init_output, notes_output, loaded_documents_output]
             )
-            note_btn = gr.Button("保存笔记", variant="primary")
-            note_output = gr.Textbox(label="保存状态", interactive=False)
-            note_btn.click(add_note_ui, inputs=[note_content, concept_input], outputs=[note_output])
 
         with gr.Tab("📊 学习统计"):
             gr.Markdown("### 查看学习进度和统计信息")
@@ -450,4 +522,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
