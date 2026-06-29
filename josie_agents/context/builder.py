@@ -10,8 +10,9 @@
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
-import tiktoken
 import math
+import re
+import tiktoken
 
 from josie_agents.tools.builtin.memory_tool import MemoryTool
 from josie_agents.tools.builtin.rag_tool import RAGTool
@@ -97,7 +98,7 @@ class ContextBuilder:
         Returns:
             结构化上下文字符串
         """
-        log.debug(f" ✋[ContextBuilder] build start, user_query: {user_query}, conversation_history={conversation_history},system_instructions: {system_instructions}, additional_packets: {additional_packets}")
+        log.info(f" ✋[ContextBuilder] build start, user_query: {user_query}, conversation_history={conversation_history},system_instructions: {system_instructions}, additional_packets: {additional_packets}")
 
         # 1. Gather: 收集候选信息
         packets = self._gather(
@@ -106,12 +107,12 @@ class ContextBuilder:
             system_instructions=system_instructions,
             additional_packets=additional_packets or []
         )
-        log.debug(f" ✋[ContextBuilder] gathered packets: {packets}")
+        log.info(f" ✋[ContextBuilder] gathered packets: {packets}")
 
 
         # 2. Select: 筛选与排序
         selected_packets = self._select(packets, user_query)
-        log.debug(f" ✋[ContextBuilder] selected packets: {selected_packets}")
+        log.info(f" ✋[ContextBuilder] selected packets: {selected_packets}")
 
 
         # 3. Structure: 组织成结构化模板
@@ -120,11 +121,11 @@ class ContextBuilder:
             user_query=user_query,
             system_instructions=system_instructions
         )
-        log.debug(f" ✋[ContextBuilder] structured context: {structured_context}")
+        log.info(f" ✋[ContextBuilder] structured context: {structured_context}")
 
         # 4. Compress: 压缩与规范化（如果超预算）
         final_context = self._compress(structured_context)
-        log.debug(f" ✋[ContextBuilder] final context: {final_context}")
+        log.info(f" ✋[ContextBuilder] final context: {final_context}")
 
         return final_context
 
@@ -202,7 +203,7 @@ class ContextBuilder:
                 f"[{msg.role}] {msg.content}"
                 for msg in recent_history
             ])
-            log.debug(f" ✋[ContextBuilder][history_gather] history_text={history_text}")
+            log.debug(f" ✋[ContextBuilder][history_gather] history_text={history_text[:200]}...")
             packets.append(ContextPacket(
                 content=history_text,
                 metadata={"type": "history", "count": len(recent_history)}
@@ -219,13 +220,24 @@ class ContextBuilder:
         user_query: str
     ) -> List[ContextPacket]:
         """Select: 基于分数与预算的筛选"""
-        # 1) 计算相关性（关键词重叠）
-        query_tokens = set(user_query.lower().split())
+        # 1) 计算相关性（词元重叠）
+        query_tokens = set()
+        for token_text in re.findall(r"\w+", user_query.lower()):
+            query_tokens.update(self._encoding.encode(token_text))
+
         for packet in packets:
-            content_tokens = set(packet.content.lower().split())
+            content_tokens = set()
+            for token_text in re.findall(r"\w+", packet.content.lower()):
+                content_tokens.update(self._encoding.encode(token_text))
+
             if len(query_tokens) > 0:
                 overlap = len(query_tokens & content_tokens)
                 packet.relevance_score = overlap / len(query_tokens)
+
+                log.debug(f" 🙋[ContextBuilder][score_calculate] content={packet.content[:50]}..."
+                          f"\n\t relevance_score({packet.relevance_score})=overlap({overlap})/query_tokens({len(query_tokens)})"
+                          f"\n\t overlap({overlap})=query_tokens({len(query_tokens)}) & content_tokens({len(content_tokens)})")
+
             else:
                 packet.relevance_score = 0.0
 
@@ -361,4 +373,3 @@ def count_tokens(text: str) -> int:
     except Exception:
         # 降级方案：粗略估算（1 token ≈ 4 字符）
         return len(text) // 4
-

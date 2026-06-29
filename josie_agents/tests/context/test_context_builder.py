@@ -9,7 +9,7 @@ ContextBuilder 与 Agent 集成示例
 from datetime import datetime
 
 from josie_agents.agents.josie_simple_agent import JosieSimpleAgent
-from josie_agents.contet.builder import ContextBuilder, ContextConfig
+from josie_agents.context.builder import ContextBuilder, ContextConfig
 from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.core.message import Message
 
