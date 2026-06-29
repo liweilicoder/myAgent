@@ -10,6 +10,7 @@ from josie_agents.core.database_config import get_database_config
 from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.memory.embedding import get_dimension, get_text_embedder
 from josie_agents.memory.storage.qdrant_store import QdrantVectorStore, QdrantConnectionManager
+from josie_agents.utils.trim import clean_llm_resp
 
 try:
     from markitdown import MarkItDown
@@ -933,10 +934,7 @@ def _prompt_hyde(query: str) -> Optional[str]:
         log.warn(f"🪞 [RAG] hyde failed, continuing without hypothetical answer: query='{_query_preview(query)}', error={e}")
         return None
 
-def clean_llm_resp(text: str) -> Optional[str]:
-    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL | re.IGNORECASE)
-    text = "\n".join(line for line in text.splitlines() if line.strip())
-    return text
+
 
 
 def search_vectors_expanded(

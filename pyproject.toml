@@ -30,6 +30,7 @@ dependencies = [
     "librosa>=0.11.0",
     "markitdown>=0.1.6",
     "multidict>=6.7.1",
+    "neo4j>=6.2.0",
     "numpy>=2.4.6",
     "openai>=2.38.0",
     "orjson>=3.11.9",
