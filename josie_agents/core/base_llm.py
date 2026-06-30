@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from typing import List, Dict, Iterator, Optional
 
 import josie_agents.utils.log as log
+from josie_agents.utils.trim import clean_llm_resp
 
 # 加载 .env 文件中的环境变量
 load_dotenv()
@@ -68,7 +69,7 @@ class BaseLLM:
             log.error(f"❌ 调用LLM API时发生错误: {e}")
             return ""
 
-    def invoke(self, messages: list[dict[str, str]], **kwargs) -> str:
+    def invoke(self, messages: list[dict[str, str]], trim_think: bool=False, **kwargs) -> str:
         """
         非流式调用LLM，返回完整响应。
         适用于不需要流式输出的场景。
@@ -95,6 +96,9 @@ class BaseLLM:
             content = response.choices[0].message.content
             log.debug("⬅️ 模型输出:")
             log.debug(content)
+
+            if trim_think:
+                content = clean_llm_resp(content)
 
             return content
 

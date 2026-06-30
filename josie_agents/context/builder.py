@@ -98,7 +98,7 @@ class ContextBuilder:
         Returns:
             结构化上下文字符串
         """
-        log.info(f" ✋[ContextBuilder] build start, user_query: {user_query}, conversation_history={conversation_history},system_instructions: {system_instructions}, additional_packets: {additional_packets}")
+        log.info(f" ✋[ContextBuilder] build start: \n\t * user_query: {user_query}, \n\t * conversation_history={conversation_history}, \n\t * system_instructions: {system_instructions},\n\t * additional_packets: {additional_packets}")
 
         # 1. Gather: 收集候选信息
         packets = self._gather(
