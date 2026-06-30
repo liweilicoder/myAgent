@@ -186,7 +186,7 @@ class ProjectAssistant(JosieSimpleAgent):
                 token_count=len(content) // 4,  # 简单估算
                 relevance_score=0.75,  # 笔记具有较高相关性
                 metadata={
-                    "type": "note",
+                    "type": "task_state",
                     "note_type": note_type,
                     "note_id": note_id
                 }
@@ -273,12 +273,20 @@ def main():
     )
     log.test(f"助手回答: {response}\n")
 
+    # 第二次交互:提出问题
+    log.test("第三次交互:问题成功解决！")
+    response = assistant.run(
+        "版本冲突解决， 重构完成",
+        note_as_action=True
+    )
+    log.test(f"助手回答: {response}\n")
+
     # 查看笔记摘要
     log.test("查看笔记摘要:")
     summary = assistant.note_tool.run({"action": "summary"})
     log.test(json.dumps(summary, indent=2, ensure_ascii=False).replace("\\n", "\n"))
 
-    log.success("\n" + "=" * 80)
+    log.success("=" * 80)
     log.success("演示完成!")
     log.success("=" * 80)
 

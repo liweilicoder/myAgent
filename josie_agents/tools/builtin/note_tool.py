@@ -95,6 +95,7 @@ class NoteTool(BaseTool):
         # 笔记索引文件
         self.index_file = self.workspace / "notes_index.json"
         self._load_index()
+        log.success(" 🌂 NoteTool初始化完成")
 
     def _load_index(self):
         """加载笔记索引"""
@@ -110,6 +111,8 @@ class NoteTool(BaseTool):
                 }
             }
             self._save_index()
+
+        log.success("🌂 index文件创建并加载完成")
 
     def _save_index(self):
         """保存笔记索引"""
@@ -325,6 +328,7 @@ class NoteTool(BaseTool):
         self.notes_index["metadata"]["total_notes"] = len(self.notes_index["notes"])
         self._save_index()
 
+        log.success(f"🌂 笔记创建成功 ID: {note_id} 标题: {title} 类型: {note_type}")
         return f"✅ 笔记创建成功\n\t ID: {note_id}\n\t 标题: {title}\n\t 类型: {note_type}"
 
     def _read_note(self, params: Dict[str, Any]) -> str:
@@ -343,7 +347,8 @@ class NoteTool(BaseTool):
 
         note = self._markdown_to_note(markdown_text)
 
-        return self._format_note(note)
+        log.success(f"🌂 读取笔记成功, note: {self._format_note(note)}")
+        return json.dumps(note, ensure_ascii=False)
 
     def _update_note(self, params: Dict[str, Any]) -> str:
         """更新笔记"""
@@ -388,6 +393,7 @@ class NoteTool(BaseTool):
                 break
         self._save_index()
 
+        log.success(f"🌂 更新笔记成功, params={params}")
         return f"✅ 笔记更新成功: {note_id}"
 
     def _delete_note(self, params: Dict[str, Any]) -> str:
@@ -411,6 +417,7 @@ class NoteTool(BaseTool):
         self.notes_index["metadata"]["total_notes"] = len(self.notes_index["notes"])
         self._save_index()
 
+        log.success(f"🌂 删除笔记成功, note_id: {note_id}")
         return f"✅ 笔记已删除: {note_id}"
 
     def _list_notes(self, params: Dict[str, Any]) -> str:
@@ -427,7 +434,8 @@ class NoteTool(BaseTool):
         filtered_notes = filtered_notes[:limit]
 
         if not filtered_notes:
-            return "📝 暂无笔记"
+            log.info(f"🌂 列出笔记完成, 未找到类型 '{note_type}' 的笔记 ")
+            return ""
 
         result = f"📝 笔记列表（共 {len(filtered_notes)} 条）\n\n"
         for note in filtered_notes:
@@ -437,7 +445,9 @@ class NoteTool(BaseTool):
                 result += f"  标签: {', '.join(note['tags'])}\n"
             result += f"  创建时间: {note['created_at']}\n\n"
 
-        return result
+        log.success(f"🌂 列出笔记成功, result:\n {result}")
+
+        return json.dumps(filtered_notes, ensure_ascii=False)
 
     def _search_notes(self, params: Dict[str, Any]) -> str:
         """搜索笔记"""
@@ -471,13 +481,16 @@ class NoteTool(BaseTool):
         matched_notes = matched_notes[:limit]
 
         if not matched_notes:
-            return f"📝 未找到匹配 '{query}' 的笔记"
+            log.info(f"🌂 搜索笔记完成, 未找到匹配 '{query}' 的笔记 ")
+            return ""
 
         result = f"🔍 搜索结果（共 {len(matched_notes)} 条）\n\n"
         for note in matched_notes:
             result += self._format_note(note, compact=True) + "\n"
 
-        return result
+        log.success(f"🌂 搜索笔记成功, result:\n {result}")
+
+        return json.dumps(matched_notes, ensure_ascii=False)
 
     def _get_summary(self) -> str:
         """获取笔记摘要"""

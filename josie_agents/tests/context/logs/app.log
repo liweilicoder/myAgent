@@ -1,0 +1,52 @@
+2024-01-19 14:57:02 INFO startup request_id=req-1000 service=checkout version=1.8.3 message="service boot completed"
+2024-01-19 14:58:17 INFO health request_id=req-1001 status=ok latency_ms=12 message="health check passed"
+2024-01-19 14:59:43 WARN cache request_id=req-1002 key=user:1842 latency_ms=380 message="cache read slower than threshold"
+2024-01-19 15:00:01 INFO request request_id=req-1003 method=GET path=/api/orders status=200 latency_ms=34 user_id=1842
+2024-01-19 15:00:08 ERROR database request_id=req-1004 code=DB_TIMEOUT retryable=true latency_ms=2500 message="order query timed out"
+2024-01-19 15:01:12 INFO request request_id=req-1005 method=POST path=/api/cart status=201 latency_ms=48 user_id=2077
+2024-01-19 15:01:59 ERROR payment request_id=req-1006 code=PAYMENT_DECLINED retryable=false provider=stripe message="card authorization declined"
+2024-01-19 15:02:21 WARN queue request_id=req-1007 queue=invoice_jobs depth=811 message="queue depth above warning threshold"
+2024-01-19 15:03:04 ERROR api request_id=req-1008 code=UPSTREAM_502 retryable=true upstream=pricing message="pricing service returned bad gateway"
+2024-01-19 15:04:36 INFO request request_id=req-1009 method=GET path=/api/products status=200 latency_ms=28 user_id=1934
+2024-01-19 15:05:10 ERROR database request_id=req-1010 code=DB_DEADLOCK retryable=true table=orders message="deadlock while updating order status"
+2024-01-19 15:06:44 INFO worker request_id=req-1011 job=send_receipt status=completed latency_ms=92
+2024-01-19 15:07:03 ERROR auth request_id=req-1012 code=TOKEN_EXPIRED retryable=false user_id=1842 message="access token expired"
+2024-01-19 15:08:27 WARN rate_limit request_id=req-1013 user_id=2911 limit=120 current=118 message="user near rate limit"
+2024-01-19 15:09:18 ERROR payment request_id=req-1014 code=PAYMENT_GATEWAY_TIMEOUT retryable=true provider=stripe latency_ms=3000 message="gateway timeout"
+2024-01-19 15:10:55 INFO request request_id=req-1015 method=DELETE path=/api/cart/items/984 status=204 latency_ms=31 user_id=2077
+2024-01-19 15:11:39 ERROR api request_id=req-1016 code=UPSTREAM_503 retryable=true upstream=inventory message="inventory service unavailable"
+2024-01-19 15:12:06 INFO scheduler request_id=req-1017 task=refresh_exchange_rates status=started
+2024-01-19 15:12:31 ERROR validation request_id=req-1018 code=INVALID_PAYLOAD retryable=false field=quantity message="quantity must be positive"
+2024-01-19 15:13:49 WARN database request_id=req-1019 pool_used=18 pool_size=20 message="database pool near capacity"
+2024-01-19 15:14:05 ERROR database request_id=req-1020 code=DB_TIMEOUT retryable=true latency_ms=2600 message="customer lookup timed out"
+2024-01-19 15:15:28 INFO scheduler request_id=req-1021 task=refresh_exchange_rates status=completed latency_ms=1322
+2024-01-19 15:16:17 ERROR payment request_id=req-1022 code=PAYMENT_GATEWAY_TIMEOUT retryable=true provider=stripe latency_ms=3100 message="gateway timeout"
+2024-01-19 15:17:22 INFO request request_id=req-1023 method=GET path=/api/orders/9912 status=200 latency_ms=40 user_id=1842
+2024-01-19 15:18:03 ERROR auth request_id=req-1024 code=INVALID_SIGNATURE retryable=false user_id=3910 message="jwt signature verification failed"
+2024-01-19 15:19:45 WARN cache request_id=req-1025 key=product:773 miss_rate=0.32 message="cache miss rate elevated"
+2024-01-19 15:20:11 ERROR api request_id=req-1026 code=UPSTREAM_502 retryable=true upstream=shipping message="shipping service returned bad gateway"
+2024-01-19 15:21:09 INFO request request_id=req-1027 method=PATCH path=/api/profile status=200 latency_ms=57 user_id=1842
+2024-01-19 15:22:30 ERROR worker request_id=req-1028 code=JOB_RETRY_LIMIT retryable=false job=invoice_email message="job exceeded retry limit"
+2024-01-19 15:23:14 INFO request request_id=req-1029 method=GET path=/api/cart status=200 latency_ms=24 user_id=2077
+2024-01-19 15:24:02 ERROR database request_id=req-1030 code=DB_TIMEOUT retryable=true latency_ms=2800 message="product query timed out"
+2024-01-19 15:25:33 WARN deploy request_id=req-1031 version=1.8.4 canary=10 message="canary rollout started"
+2024-01-19 15:26:18 ERROR api request_id=req-1032 code=UPSTREAM_503 retryable=true upstream=pricing message="pricing service unavailable"
+2024-01-19 15:27:41 INFO deploy request_id=req-1033 version=1.8.4 canary=50 message="canary rollout expanded"
+2024-01-19 15:28:29 ERROR payment request_id=req-1034 code=PAYMENT_DECLINED retryable=false provider=paypal message="payer account rejected"
+2024-01-19 15:29:06 INFO deploy request_id=req-1035 version=1.8.4 canary=100 message="rollout completed"
+2024-01-19 15:30:54 ERROR database request_id=req-1036 code=DB_DEADLOCK retryable=true table=payments message="deadlock while writing payment record"
+2024-01-19 15:31:20 INFO request request_id=req-1037 method=GET path=/api/products/773 status=200 latency_ms=29 user_id=1934
+2024-01-19 15:32:02 ERROR auth request_id=req-1038 code=TOKEN_EXPIRED retryable=false user_id=2077 message="access token expired"
+2024-01-19 15:33:48 WARN queue request_id=req-1039 queue=receipt_jobs depth=620 message="queue depth above warning threshold"
+2024-01-19 15:34:25 ERROR api request_id=req-1040 code=UPSTREAM_502 retryable=true upstream=inventory message="inventory service returned bad gateway"
+2024-01-19 15:35:11 INFO request request_id=req-1041 method=POST path=/api/orders status=201 latency_ms=86 user_id=1842
+2024-01-19 15:36:37 ERROR validation request_id=req-1042 code=MISSING_FIELD retryable=false field=shipping_address message="required field missing"
+2024-01-19 15:37:58 INFO worker request_id=req-1043 job=sync_inventory status=completed latency_ms=488
+2024-01-19 15:38:19 ERROR database request_id=req-1044 code=DB_TIMEOUT retryable=true latency_ms=2700 message="inventory reservation timed out"
+2024-01-19 15:39:51 WARN rate_limit request_id=req-1045 user_id=1842 limit=120 current=121 message="user exceeded soft rate limit"
+2024-01-19 15:40:33 ERROR payment request_id=req-1046 code=PAYMENT_GATEWAY_TIMEOUT retryable=true provider=stripe latency_ms=3200 message="gateway timeout"
+2024-01-19 15:41:24 INFO request request_id=req-1047 method=GET path=/api/orders status=200 latency_ms=36 user_id=2077
+2024-01-19 15:42:07 ERROR worker request_id=req-1048 code=JOB_RETRY_LIMIT retryable=false job=settlement_export message="job exceeded retry limit"
+2024-01-19 15:43:16 INFO cleanup request_id=req-1049 deleted_sessions=124 message="expired sessions removed"
+2024-01-19 15:44:55 ERROR api request_id=req-1050 code=UPSTREAM_503 retryable=true upstream=shipping message="shipping service unavailable"
+2024-01-19 15:45:30 INFO shutdown request_id=req-1051 service=checkout message="graceful shutdown requested"
