@@ -85,7 +85,7 @@ class ProjectAssistant(JosieSimpleAgent):
     def _retrieve_relevant_notes(self, query: str, limit: int = 3) -> List[Dict]:
         """检索相关笔记"""
         try:
-            # 优先检索 blocker 和 action 类型的笔记
+            # 优先检索 blocker
             blockers_raw = self.note_tool.run({
                 "action": "list",
                 "note_type": "blocker",
