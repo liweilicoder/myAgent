@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Iterator, Optional, Union, TYPE_CHECKING, Any, Dict
 
 from josie_agents.agents.base_agent import BaseAgent
@@ -11,6 +12,7 @@ from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.core.message import Message
 from josie_agents.tools.registry import ToolRegistry
 from josie_agents.utils import log
+from josie_agents.utils.trim import clean_llm_resp
 
 
 def _map_parameter_type(param_type: str) -> str:
@@ -41,6 +43,7 @@ class JosieFunctionCallAgent(BaseAgent):
         self.enable_tool_calling = enable_tool_calling and tool_registry is not None
         self.default_tool_choice = default_tool_choice
         self.max_tool_iterations = max_tool_iterations
+        self.tool_call_history: list[dict[str, Any]] = []
 
     def _get_system_prompt(self) -> str:
         """构建系统提示词，注入工具描述"""
@@ -228,6 +231,13 @@ class JosieFunctionCallAgent(BaseAgent):
 
     def _invoke_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], tool_choice: Union[str, dict], **kwargs):
         """调用底层OpenAI客户端执行函数调用"""
+        log.debug(f" ⬆️[invoke_with_tools] llm 模型输入:")
+        for i, m in enumerate(messages):
+            log.debug(f"[Message{i}] role={m['role']}, content={m['content']}...", True)
+        for i, tool in enumerate(tools):
+            log.debug(f"[Tool{i}] tool={tool}", True)
+
+
         client = getattr(self.llm, "client", None)
         if client is None:
             raise RuntimeError("JosieLLM 未正确初始化客户端，无法执行函数调用。")
@@ -237,7 +247,7 @@ class JosieFunctionCallAgent(BaseAgent):
         if self.llm.max_tokens is not None:
             client_kwargs.setdefault("max_tokens", self.llm.max_tokens)
 
-        return client.chat.completions.create(
+        resp = client.chat.completions.create(
             model=self.llm.model,
             messages=messages,
             tools=tools,
@@ -245,12 +255,22 @@ class JosieFunctionCallAgent(BaseAgent):
             **client_kwargs,
         )
 
+        response_payload = resp
+        if hasattr(resp, "model_dump"):
+            response_payload = resp.model_dump(mode="json")
+
+        log.debug(f" ⬇️[invoke_with_tools] llm 模型输出:"
+                  f"\n{json.dumps(response_payload, indent=4, ensure_ascii=False, default=str)}")
+
+        return resp
+
     def run(
         self,
         input_text: str,
         *,
         max_tool_iterations: Optional[int] = None,
         tool_choice: Optional[Union[str, dict]] = None,
+        trim_think: bool = True,
         **kwargs,
     ) -> str:
         """
@@ -292,6 +312,9 @@ class JosieFunctionCallAgent(BaseAgent):
             choice = response.choices[0]
             assistant_message = choice.message
             content = self._extract_message_content(assistant_message.content)
+            if trim_think:
+                content = clean_llm_resp(content)
+
             tool_calls = list(assistant_message.tool_calls or [])
 
             if tool_calls:
@@ -314,7 +337,14 @@ class JosieFunctionCallAgent(BaseAgent):
                 for tool_call in tool_calls:
                     tool_name = tool_call.function.name
                     arguments = self._parse_function_call_arguments(tool_call.function.arguments)
+                    log.debug(f"🤖 {self.name} 正在执行工具{tool_name}, 参数为:{arguments}")
                     result = self._execute_tool_call(tool_name, arguments)
+                    self.tool_call_history.append({
+                        "tool_name": tool_name,
+                        "arguments": arguments,
+                        "timestamp": datetime.now().isoformat(),
+                        "success": not str(result).startswith("❌"),
+                    })
                     messages.append(
                         {
                             "role": "tool",
@@ -343,6 +373,7 @@ class JosieFunctionCallAgent(BaseAgent):
 
         self.add_message(Message(input_text, "user"))
         self.add_message(Message(final_response, "assistant"))
+        log.success(f" 输入: {input_text}的处理结果为{final_response}")
         return final_response
 
     def add_tool(self, tool) -> None:

@@ -146,11 +146,6 @@ class TerminalTool(BaseTool):
 
         log.info(f"⛰️[TerminalTool] command: {base_command}, parameters: {parts[1:]}")
 
-        shell_error = self._validate_no_shell_features(command, parts)
-        if shell_error:
-            log.error(shell_error)
-            return shell_error
-
         # 检查命令是否在白名单中
         if base_command not in self.ALLOWED_COMMANDS:
             log.error(f"❌ 不允许的命令: {base_command}\n允许的命令: {', '.join(sorted(self.ALLOWED_COMMANDS))}")
@@ -213,20 +208,6 @@ class TerminalTool(BaseTool):
         self.current_dir = new_dir
         log.success(f"⛰️ [TerminalTool] [cd] 切换到目录: {self.current_dir}")
         return f"✅ 切换到目录: {self.current_dir}"
-
-    def _validate_no_shell_features(self, command: str, parts: List[str]) -> str:
-        """拒绝 shell 组合语法。TerminalTool 是单命令工具，不是 shell。"""
-        if "$(" in command:
-            return "❌ 不允许使用 shell 组合语法"
-
-        for token in parts:
-            if token in self.SHELL_META_TOKENS:
-                return "❌ 不允许使用 shell 组合语法"
-
-            if any(char in token for char in self.SHELL_META_CHARS):
-                return "❌ 不允许使用 shell 组合语法"
-
-        return ""
 
     def _validate_and_expand_command(self, parts: List[str]) -> Tuple[List[str], str]:
         """校验命令参数中的路径，并在工作目录内展开基础 glob。"""

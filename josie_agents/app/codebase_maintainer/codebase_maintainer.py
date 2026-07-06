@@ -9,11 +9,12 @@ CodebaseMaintainer - 代码库维护助手
 
 关键改进：使用 Agentic 方式，让 agent 自主决定使用哪些工具
 """
+import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from josie_agents.agents.josie_function_call_agent import JosieFunctionCallAgent
-from josie_agents.context.builder import ContextBuilder, ContextConfig
+from josie_agents.context.builder import ContextBuilder, ContextConfig, ContextPacket
 from josie_agents.core.josie_llm import JosieLLM
 from josie_agents.core.message import Message
 from josie_agents.tools.builtin.memory_tool import MemoryTool
@@ -95,11 +96,12 @@ class CodebaseMaintainer:
             "issues_found": 0,
             "tool_calls": 0
         }
+        self._tracked_tool_event_count = 0
 
-        log.success(f"✅ 代码库维护助手已初始化: {project_name} (Agentic Mode)")
-        log.info(f"📁 工作目录: {codebase_path}")
-        log.info(f"🆔 会话ID: {self.session_id}")
-        log.info(f"🔧 可用工具: {', '.join(self.tool_registry.list_tools())}")
+        log.test(f"✅ 代码库维护助手已初始化: {project_name} (Agentic Mode)")
+        log.test(f"📁 工作目录: {codebase_path}")
+        log.test(f"🆔 会话ID: {self.session_id}")
+        log.test(f"🔧 可用工具: {', '.join(self.tool_registry.list_tools())}")
 
     def run(self, user_input: str, mode: str = "auto") -> str:
         """运行助手（Agentic 方式）
@@ -115,9 +117,7 @@ class CodebaseMaintainer:
         Returns:
             str: 助手的回答
         """
-        log.delimiter('=' * 80)
         log.delimiter(f"👤 用户: {user_input}")
-        log.delimiter('=' * 80)
 
         # 第一步: 检索相关笔记（为 agent 提供上下文）
         relevant_notes = self._retrieve_relevant_notes(user_input)
@@ -146,8 +146,7 @@ class CodebaseMaintainer:
         # 第五步: 更新对话历史
         self._update_history(user_input, response)
 
-        log.delimiter(f"🤖 助手: {response}\n")
-        log.delimiter('=' * 80)
+        log.delimiter(f"🤖 助手回答: {response}")
 
         return response
 
@@ -176,3 +175,287 @@ class CodebaseMaintainer:
 - 发现重要信息时，主动使用 NoteTool 记录
 - 保持回答的专业性和实用性
 """
+
+    def _track_tool_usage(self):
+        """统计工具使用情况"""
+        tool_events = getattr(self.agent, "tool_call_history", [])
+        new_events = tool_events[self._tracked_tool_event_count:]
+
+        for event in new_events:
+            tool_name = event.get("tool_name")
+            arguments = event.get("arguments") or {}
+            success = event.get("success") is True
+
+            self.stats["tool_calls"] += 1
+
+            if tool_name == "terminal" and arguments.get("command"):
+                self.stats["commands_executed"] += 1
+
+            if tool_name == "note" and arguments.get("action") == "create" and success:
+                self.stats["notes_created"] += 1
+                if arguments.get("note_type") == "blocker":
+                    self.stats["issues_found"] += 1
+
+        self._tracked_tool_event_count = len(tool_events)
+
+        log.info(
+            f" [track_tool_usage] tool_calls = {self.stats['tool_calls']}, "
+            f"commands_executed = {self.stats['commands_executed']}, "
+            f"notes_created = {self.stats['notes_created']}, "
+            f"issues_found = {self.stats['issues_found']}"
+        )
+
+
+    def _retrieve_relevant_notes(self, query: str, limit: int = 3) -> List[Dict]:
+        """检索相关笔记"""
+        try:
+            # 优先检索 blocker
+            blockers_raw = self.note_tool.run({
+                "action": "list",
+                "note_type": "blocker",
+                "limit": 2
+            })
+
+            # 通用搜索
+            search_results_raw = self.note_tool.run({
+                "action": "search",
+                "query": query,
+                "limit": limit
+            })
+
+            log.debug(f" 👌[CodebaseMaintainer][_ensure_list_of_dicts] Input: \n\t blockers_raw={blockers_raw}\n\t search_results_raw={search_results_raw}")
+            blockers = self._ensure_list_of_dicts(blockers_raw)
+            search_results = self._ensure_list_of_dicts(search_results_raw)
+            log.debug(f" 👌[CodebaseMaintainer][_ensure_list_of_dicts] Output: \n\t blockers={blockers}\n\t search_results={search_results}")
+
+            # 合并并去重
+            all_notes = {}
+            for note in blockers + search_results:
+                if not isinstance(note, dict):
+                    continue
+                note_id = (
+                    note.get("note_id")
+                    or note.get("id")
+                    or note.get("uuid")
+                    or note.get("title")
+                    or str(hash(str(note)))
+                )
+                all_notes[note_id] = note
+            return list(all_notes.values())[:limit]
+
+        except Exception as e:
+            log.error(f"[WARNING] 笔记检索失败: {e}")
+            return []
+
+    def _ensure_list_of_dicts(self, data) -> List[Dict]:
+        """将 NoteTool 返回规范化为字典列表"""
+        if data is None:
+            return []
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                return []
+        if isinstance(data, dict):
+            # 兼容 {"items": [...]} 或单条记录
+            if "items" in data and isinstance(data["items"], list):
+                return [item for item in data["items"] if isinstance(item, dict)]
+            return [data]
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        return []
+
+    def _notes_to_packets(self, notes: List[Dict]) -> List[ContextPacket]:
+        """将笔记转换为上下文包"""
+        packets = []
+
+        for note in notes:
+            if not isinstance(note, dict):
+                continue
+            # 根据笔记类型设置不同的相关性分数
+            relevance_map = {
+                "blocker": 0.9,
+                "action": 0.8,
+                "task_state": 0.75,
+                "conclusion": 0.7
+            }
+
+            note_type = note.get('type', 'general')
+            relevance = relevance_map.get(note_type, 0.6)
+
+            content = f"[笔记:{note.get('title', 'Untitled')}]\n类型: {note_type}\n\n{note.get('content', '')}"
+            updated_at = note.get('updated_at')
+            try:
+                note_timestamp = datetime.fromisoformat(updated_at) if updated_at else datetime.now()
+            except (ValueError, TypeError):
+                note_timestamp = datetime.now()
+
+            packets.append(ContextPacket(
+                content=content,
+                timestamp=note_timestamp,
+                token_count=len(content) // 4,
+                relevance_score=relevance,
+                metadata={
+                    "type": "note",
+                    "note_type": note_type,
+                    "note_id": note.get('note_id') or note.get('id')
+                }
+            ))
+
+        return packets
+
+
+    def _build_system_instructions(self, mode: str) -> str:
+        """构建系统指令（Agentic 方式）"""
+        base_instructions = self._build_base_system_prompt()
+
+        mode_hints = {
+            "explore": """
+用户当前关注: 探索代码库
+
+建议策略:
+- 考虑使用 TerminalTool 了解代码结构（如 find, ls, tree）
+- 查看关键文件（如 README, 主要模块）
+- 将架构信息记录到笔记方便后续查阅
+""",
+            "analyze": """
+用户当前关注: 分析代码质量
+
+建议策略:
+- 考虑使用 grep 查找潜在问题（TODO, FIXME, BUG）
+- 分析代码复杂度和结构
+- 将发现的问题记录为 blocker 或 action 笔记
+""",
+            "plan": """
+用户当前关注: 任务规划
+
+建议策略:
+- 回顾历史笔记了解当前进度
+- 基于已有信息制定行动计划
+- 创建或更新 task_state 类型的笔记
+""",
+            "auto": """
+用户当前关注: 自由对话
+
+建议策略:
+- 根据用户需求灵活决策
+- 在需要时主动使用工具获取信息
+- 不需要时可以直接回答
+"""
+        }
+
+        return base_instructions + "\n" + mode_hints.get(mode, mode_hints["auto"])
+
+    def _update_history(self, user_input: str, response: str):
+        """更新对话历史"""
+        self.conversation_history.append(
+            Message(content=user_input, role="user", timestamp=datetime.now())
+        )
+        self.conversation_history.append(
+            Message(content=response, role="assistant", timestamp=datetime.now())
+        )
+
+        # 限制历史长度(保留最近100轮对话)
+        if len(self.conversation_history) > 100:
+            self.conversation_history = self.conversation_history[-100:]
+
+    # === 便捷方法 ===
+
+    def explore(self, target: str = ".") -> str:
+        """探索代码库（Agentic 方式）
+
+        Agent 会自主决定使用哪些命令来探索代码库
+        """
+        return self.run(f"请探索 {target} 的代码结构，了解项目组织方式", mode="explore")
+
+    def analyze(self, focus: str = "") -> str:
+        """分析代码质量（Agentic 方式）
+
+        Agent 会自主决定如何分析代码质量
+        """
+        query = f"请分析代码质量" + (f"，重点关注{focus}" if focus else "")
+        return self.run(query, mode="analyze")
+
+    def plan_next_steps(self) -> str:
+        """规划下一步任务（Agentic 方式）
+
+        Agent 会查看历史笔记并规划下一步
+        """
+        return self.run("根据我们之前的分析和当前进度，规划下一步任务", mode="plan")
+
+    def get_stats(self) -> Dict[str, Any]:
+        """获取统计信息"""
+        duration = (datetime.now() - self.stats["session_start"]).total_seconds()
+
+        # 获取笔记摘要
+        try:
+            note_summary = self.note_tool.run({"action": "summary"})
+        except:
+            note_summary = {}
+
+        return {
+            "session_info": {
+                "session_id": self.session_id,
+                "project": self.project_name,
+                "duration_seconds": duration
+            },
+            "activity": {
+                "commands_executed": self.stats["commands_executed"],
+                "notes_created": self.stats["notes_created"],
+                "issues_found": self.stats["issues_found"]
+            },
+            "notes": note_summary
+        }
+
+    def generate_report(self, save_to_file: bool = True) -> Dict[str, Any]:
+        """生成会话报告"""
+        report = self.get_stats()
+
+        if save_to_file:
+            report_file = f"maintainer_report_{self.session_id}.json"
+            with open(report_file, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+            report["report_file"] = report_file
+            log.success(f"📄 报告已保存: {report_file}")
+
+        return report
+
+
+def main():
+    """主函数 - 演示 CodebaseMaintainer 的使用（Agentic 版本）
+
+    在这个版本中：
+    - Agent 自主决定使用哪些工具
+    - 不预定义工作流
+    - Agent 根据需求灵活探索代码库
+    """
+    log.delimiter("CodebaseMaintainer 演示（Agentic 版本）")
+
+    # 初始化助手
+    maintainer = CodebaseMaintainer(
+        project_name="flask_app",
+        codebase_path="./flask_app",
+        llm=JosieLLM()
+    )
+
+    # 探索代码库（Agent 自主决定如何探索）
+    #log.test("### 探索代码库（Agent 自主探索）###")
+    #response = maintainer.explore(target=".")
+
+    # 分析代码质量（Agent 自主决定分析方法）
+    #log.test("### 分析代码质量（Agent 自主分析）###")
+    #response = maintainer.analyze(focus="代码风格")
+
+    # 规划下一步（Agent 基于历史信息规划）
+    log.test("### 规划下一步任务（Agent 自主规划）###")
+    response = maintainer.plan_next_steps()
+
+    # 生成报告
+    log.test("### 生成会话报告 ###")
+    report = maintainer.generate_report()
+    log.test(json.dumps(report, indent=2, ensure_ascii=False))
+
+    log.success("演示完成!")
+
+if __name__ == "__main__":
+    main()
