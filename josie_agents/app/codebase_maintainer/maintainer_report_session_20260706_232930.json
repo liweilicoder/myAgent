@@ -1,0 +1,13 @@
+{
+  "session_info": {
+    "session_id": "session_20260706_232930",
+    "project": "demo_codebase",
+    "duration_seconds": 298.962597
+  },
+  "activity": {
+    "commands_executed": 19,
+    "notes_created": 7,
+    "issues_found": 0
+  },
+  "notes": "📊 笔记摘要\n\n总笔记数: 7\n\n按类型统计:\n  • action: 2\n  • conclusion: 3\n  • reference: 1\n  • task_state: 1\n"
+}

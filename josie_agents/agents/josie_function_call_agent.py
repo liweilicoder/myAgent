@@ -44,6 +44,8 @@ class JosieFunctionCallAgent(BaseAgent):
         self.default_tool_choice = default_tool_choice
         self.max_tool_iterations = max_tool_iterations
         self.tool_call_history: list[dict[str, Any]] = []
+        self._logged_messages_id: Optional[int] = None
+        self._logged_messages_count: int = 0
 
     def _get_system_prompt(self) -> str:
         """构建系统提示词，注入工具描述"""
@@ -231,9 +233,24 @@ class JosieFunctionCallAgent(BaseAgent):
 
     def _invoke_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], tool_choice: Union[str, dict], **kwargs):
         """调用底层OpenAI客户端执行函数调用"""
-        log.debug(f" ⬆️[invoke_with_tools] llm 模型输入:")
+        messages_id = id(messages)
+        if messages_id != self._logged_messages_id:
+            self._logged_messages_id = messages_id
+            self._logged_messages_count = 0
+
+        logged_count = min(self._logged_messages_count, len(messages))
+        new_count = len(messages) - logged_count
+        log.debug(
+            " ⬆️[invoke_with_tools] llm 模型输入:"
+            f" total={len(messages)}, new={new_count}, logged={logged_count}"
+        )
         for i, m in enumerate(messages):
-            log.debug(f"[Message{i}] role={m['role']}, content={m['content']}...", True)
+            content = str(m.get("content", ""))
+            if i < logged_count and len(content) > 50:
+                content = content[:50] + "..."
+            log.debug(f"[Message{i}] role={m.get('role')}, content={content}", True)
+        self._logged_messages_count = len(messages)
+
         for i, tool in enumerate(tools):
             log.debug(f"[Tool{i}] tool={tool}", True)
 

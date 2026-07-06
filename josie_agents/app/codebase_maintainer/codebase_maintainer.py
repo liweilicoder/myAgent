@@ -420,6 +420,30 @@ class CodebaseMaintainer:
 
         return report
 
+    def execute_command(self, command: str) -> str:
+        """执行终端命令"""
+        result = self.terminal_tool.run({"command": command})
+        self.stats["commands_executed"] += 1
+        return result
+
+    def create_note(
+        self,
+        title: str,
+        content: str,
+        note_type: str = "general",
+        tags: List[str] = None
+    ) -> str:
+        """创建笔记"""
+        result = self.note_tool.run({
+            "action": "create",
+            "title": title,
+            "content": content,
+            "note_type": note_type,
+            "tags": tags or [self.project_name]
+        })
+        self.stats["notes_created"] += 1
+        return result
+
 
 def main():
     """主函数 - 演示 CodebaseMaintainer 的使用（Agentic 版本）
@@ -443,12 +467,12 @@ def main():
     #response = maintainer.explore(target=".")
 
     # 分析代码质量（Agent 自主决定分析方法）
-    #log.test("### 分析代码质量（Agent 自主分析）###")
-    #response = maintainer.analyze(focus="代码风格")
+    log.test("### 分析代码质量（Agent 自主分析）###")
+    response = maintainer.analyze(focus="代码风格")
 
     # 规划下一步（Agent 基于历史信息规划）
-    log.test("### 规划下一步任务（Agent 自主规划）###")
-    response = maintainer.plan_next_steps()
+    #log.test("### 规划下一步任务（Agent 自主规划）###")
+    #response = maintainer.plan_next_steps()
 
     # 生成报告
     log.test("### 生成会话报告 ###")
