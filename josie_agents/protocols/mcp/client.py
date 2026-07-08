@@ -268,5 +268,85 @@ class MCPClient:
             for resource in result.resources
         ]
 
+    async def read_resource(self, uri: str) -> Any:
+        """读取资源内容"""
+        if not self.client:
+            raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
+
+        result = await self.client.read_resource(uri)
+
+        # 解析资源内容
+        if hasattr(result, 'contents') and result.contents:
+            if len(result.contents) == 1:
+                content = result.contents[0]
+                if hasattr(content, 'text'):
+                    return content.text
+                elif hasattr(content, 'blob'):
+                    return content.blob
+            return [
+                getattr(c, 'text', getattr(c, 'blob', str(c)))
+                for c in result.contents
+            ]
+        return None
+
+    async def list_prompts(self) -> List[Dict[str, Any]]:
+        """列出所有可用的提示词模板"""
+        if not self.client:
+            raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
+
+        result = await self.client.list_prompts()
+        return [
+            {
+                "name": prompt.name,
+                "description": prompt.description or "",
+                "arguments": getattr(prompt, 'arguments', [])
+            }
+            for prompt in result.prompts
+        ]
+
+    async def get_prompt(self, prompt_name: str, arguments: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+        """获取提示词内容"""
+        if not self.client:
+            raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
+
+        result = await self.client.get_prompt(prompt_name, arguments or {})
+
+        # 解析提示词消息
+        if hasattr(result, 'messages') and result.messages:
+            return [
+                {
+                    "role": msg.role,
+                    "content": getattr(msg.content, 'text', str(msg.content)) if hasattr(msg.content, 'text') else str(
+                        msg.content)
+                }
+                for msg in result.messages
+            ]
+        return []
+
+    async def ping(self) -> bool:
+        """测试服务器连接"""
+        if not self.client:
+            raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
+
+        try:
+            await self.client.ping()
+            return True
+        except Exception:
+            return False
+
+    def get_transport_info(self) -> Dict[str, Any]:
+        """获取传输信息"""
+        if not self.client:
+            return {"status": "not_connected"}
+
+        transport = getattr(self.client, 'transport', None)
+        if transport:
+            return {
+                "status": "connected",
+                "transport_type": type(transport).__name__,
+                "transport_info": str(transport)
+            }
+        return {"status": "unknown"}
+
 
 
