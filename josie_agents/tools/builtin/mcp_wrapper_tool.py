@@ -1,5 +1,5 @@
 """
-MCP工具包装器 - 将单个MCP工具包装成 BaseTool
+MCP工具包装器 - 将MCP中的单个工具包装成 BaseTool
 
 这个模块将MCP服务器的每个工具展开为独立的 BaseTool对象，
 使得Agent可以像调用普通工具一样调用MCP工具。
@@ -7,6 +7,7 @@ MCP工具包装器 - 将单个MCP工具包装成 BaseTool
 from typing import Dict, Any, List
 
 from josie_agents.tools.base_tool import BaseTool, ToolParameter
+from josie_agents.utils import log
 
 
 class MCPWrappedTool(BaseTool):
@@ -58,6 +59,8 @@ class MCPWrappedTool(BaseTool):
             name=tool_name,
             description=description
         )
+
+        log.info(f"🔌 MCP[wrapped_tool] initialized: {tool_name}, description: {description}")
 
     def _parse_input_schema(self, input_schema: Dict[str, Any]) -> List[ToolParameter]:
         """

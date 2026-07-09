@@ -9,6 +9,8 @@
 import asyncio
 import os
 import concurrent.futures
+import platform
+import sys
 from typing import Optional, List, Any, Dict
 
 from josie_agents.protocols.mcp.client import MCPClient
@@ -227,8 +229,6 @@ class MCPTool(BaseTool):
             @server.tool()
             def get_system_info() -> dict:
                 """获取系统信息"""
-                import platform
-                import sys
                 return {
                     "platform": platform.system(),
                     "python_version": sys.version,
@@ -285,10 +285,12 @@ class MCPTool(BaseTool):
                     future = executor.submit(run_in_thread)
                     # 阻塞主线程，等待子线程执行完成并获取返回的tools列表
                     self._available_tools = future.result()
+                    log.info(f"🔌 MCP[discover_tools] available tools: {self._available_tools}")
             except RuntimeError:
                 # 捕获到RuntimeError：说明当前线程不存在运行中的事件循环
                 # 普通同步脚本、普通类初始化场景，直接用asyncio.run一键运行异步函数
                 self._available_tools = asyncio.run(discover())
+                log.info(f"🔌 MCP[discover_tools with runtimeError] available tools: {self._available_tools}")
 
         except Exception as e:
             # 捕获上面所有层级全部异常：连接失败、启动超时、线程报错、MCP服务崩溃等
@@ -376,6 +378,8 @@ class MCPTool(BaseTool):
         if not action and "tool_name" in parameters:
             action = "call_tool"
             parameters["action"] = action
+
+        log.info(f"🔌 MCP[run] action: {action}, parameters: {parameters}")
 
         if not action:
             return "错误：必须指定 action 参数或 tool_name 参数"
