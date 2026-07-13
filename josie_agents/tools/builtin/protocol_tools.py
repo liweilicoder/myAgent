@@ -262,6 +262,7 @@ class MCPTool(BaseTool):
             # 运行异步发现逻辑，兼容两种环境：当前线程有无正在运行的asyncio循环
             try:
                 # 尝试获取当前线程正在运行的事件循环
+                # asyncio.get_running_loop 当前线程没有正在运行的事件循环”时会抛出 RuntimeError
                 loop = asyncio.get_running_loop()
 
                 # 走到这里说明：当前线程已有正在运行的异步循环（如FastAPI、Tornado、其他async业务）
@@ -291,7 +292,7 @@ class MCPTool(BaseTool):
                 # 捕获到RuntimeError：说明当前线程不存在运行中的事件循环
                 # 普通同步脚本、普通类初始化场景，直接用asyncio.run一键运行异步函数
                 self._available_tools = asyncio.run(discover())
-                log.info(f"🔌 MCPTool [discover_tools with runtimeError] available tools: \n {json.dumps(self._available_tools, indent=4)}")
+                log.info(f"🔌 MCPTool [discover_tools without asyncio] available tools: \n {json.dumps(self._available_tools, indent=4)}")
 
         except Exception as e:
             # 捕获上面所有层级全部异常：连接失败、启动超时、线程报错、MCP服务崩溃等

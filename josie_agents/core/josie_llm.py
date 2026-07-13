@@ -10,7 +10,7 @@ class JosieLLM(BaseLLM):
         model: Optional[str] = None,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        provider : Optional[str] = "minimax",
+        provider : Optional[str] = "deepseek",
         **kwargs
     ):
 
@@ -82,6 +82,27 @@ class JosieLLM(BaseLLM):
 
             # 设置默认模型和其他参数
             self.model = model or os.getenv("MINIMAX_MODEL_ID")
+            self.temperature = kwargs.get('temperature', 0.7)
+            self.max_tokens = kwargs.get('max_tokens')
+            self.timeout = kwargs.get('timeout', 60)
+
+            # 使用获取的参数创建OpenAI客户端实例
+            self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
+
+        elif provider == "deepseek":
+            log.info("正在使用Deepseek Provider")
+            self.provider = "deepseek"
+
+            # 解析 Deepseek 的凭证
+            self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
+            self.base_url = base_url or os.getenv("DEEPSEEK_BASE_URL")
+
+            # 验证凭证是否存在
+            if not self.api_key:
+                raise ValueError("Deepseek API key not found. Please set DEEPSEEK_API_KEY environment variable.")
+
+            # 设置默认模型和其他参数
+            self.model = model or os.getenv("DEEPSEEK_MODEL_ID")
             self.temperature = kwargs.get('temperature', 0.7)
             self.max_tokens = kwargs.get('max_tokens')
             self.timeout = kwargs.get('timeout', 60)
