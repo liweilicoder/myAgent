@@ -21,7 +21,7 @@ def main():
     # ============================================================
     # Agent 1: GitHub搜索专家
     # ============================================================
-    log.test("【步骤1】创建GitHub搜索专家...")
+    log.delimiter("【步骤1】创建GitHub搜索专家...")
 
     github_searcher = JosieSimpleAgent(
         name="GitHub搜索专家",
@@ -45,13 +45,13 @@ def main():
     # ============================================================
     # Agent 2: 文档生成专家
     # ============================================================
-    log.test("【步骤2】创建文档生成专家...")
+    log.delimiter("【步骤2】创建文档生成专家...")
 
     document_writer = JosieSimpleAgent(
         name="文档生成专家",
         llm=JosieLLM(),
         system_prompt="""你是一个文档生成专家。
-    你的任务是根据提供的信息生成结构化的Markdown报告。
+    你的任务是根据提供的信息生成结构化的Markdown报告并使用工具将结果保存。
 
     报告应该包括：
     - 标题
@@ -59,7 +59,7 @@ def main():
     - 主要内容（分点列出，包括项目名称、描述等）
     - 总结
 
-    请直接输出完整的Markdown格式报告内容，不要使用工具保存。"""
+    请直接把完整的Markdown格式文件保存。"""
     )
 
     # 添加文件系统工具
@@ -69,10 +69,9 @@ def main():
     )
     document_writer.add_tool(fs_tool)
 
-    log.test("开始执行任务...")
 
     # 步骤1：GitHub搜索
-    log.test("【步骤3】Agent1 搜索GitHub...")
+    log.delimiter("【步骤3】Agent1 搜索GitHub...")
     search_task = "搜索关于'AI agent'的GitHub仓库，返回前5个最相关的结果"
 
     search_results = github_searcher.run(search_task)
@@ -92,28 +91,13 @@ def main():
     3. 主要发现：列出找到的项目及其特点（包括名称、描述等）
     4. 总结：总结这些项目的共同特点
 
-    请直接输出完整的Markdown格式报告。
+    将报告保存在./test_data/report.md文件中。
     """
 
     report_content = document_writer.run(report_task)
 
     log.test(f"报告内容:\n {report_content}")
 
-    # 步骤3：保存报告
-    log.test("【步骤5】保存报告到文件...")
-
-    try:
-        with open("./test_data/report.md", "w", encoding="utf-8") as f:
-            f.write(report_content)
-        log.test("✅ 报告已保存到 report.md")
-
-        # 验证文件
-        file_size = os.path.getsize("./test_data/report.md")
-        log.test(f"✅ 文件大小: {file_size} 字节")
-    except Exception as e:
-        log.error(f"❌ 保存失败: {e}")
-
-    log.test("任务完成！")
 
 
 if __name__ == "__main__":
