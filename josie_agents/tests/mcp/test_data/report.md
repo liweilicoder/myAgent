@@ -1,29 +1,36 @@
 # AI Agent框架研究报告
 
 ## 简介
-本报告旨在对GitHub上关于AI Agent的相关项目进行调研。通过分析这些项目的特点和功能，为开发者提供参考，以便更好地选择适合自己的AI Agent框架。
+
+本报告基于GitHub上关于AI Agent相关仓库的搜索结果，筛选出五个具有代表性的开源项目进行调研分析。这些项目涵盖了从入门教程到生产级工具，从可视化构建到自动化部署等多个维度，反映了当前AI Agent领域的主流技术趋势。
 
 ## 主要发现
 
-1. **Flowise**
-   - **描述**: Build AI Agents, Visually
-   - **特点**: 提供可视化界面，使用户能够轻松构建AI代理，无需编写大量代码。
+以下为搜索结果中排名前五的AI Agent相关仓库及其核心特点：
 
-2. **activepieces**
-   - **描述**: AI Agents & MCPs & AI Workflow Automation • (~400 MCP servers for AI agents) • AI Automation / AI Agent with MCPs • AI Workflows & AI Agents • MCPs for AI Agents
-   - **特点**: 支持AI代理和MCP（多云平台）服务器的集成，提供丰富的自动化工作流和代理功能。
+1. **[vercel/ai](https://github.com/vercel/ai)**  
+   **描述**：The AI Toolkit for TypeScript。由Next.js团队打造，是一个免费开源的AI SDK，专为构建AI驱动应用程序和智能体而设计，提供强大的TypeScript开发体验。
 
-3. **AgentGPT**
-   - **描述**: 🤖 Assemble, configure, and deploy autonomous AI Agents in your browser.
-   - **特点**: 允许用户在浏览器中组装、配置和部署自主AI代理，提供高度的灵活性和易用性。
+2. **[microsoft/ai-agents-for-beginners](https://github.com/microsoft/ai-agents-for-beginners)**  
+   **描述**：12 Lessons to Get Started Building AI Agents。微软推出的入门级教程，通过12节课程帮助初学者从零开始学习AI Agent的构建方法与最佳实践。
 
-4. **ai-agents-for-beginners**
-   - **描述**: 12 Lessons to Get Started Building AI Agents
-   - **特点**: 针对初学者设计，提供12个课程，帮助新手快速入门AI代理开发。
+3. **[activepieces/activepieces](https://github.com/activepieces/activepieces)**  
+   **描述**：AI Agents & MCPs & AI Workflow Automation。提供约400个MCP服务器供AI Agent使用，支持AI工作流自动化、AI自动化与智能体构建，是一个高度集成的AI工作流平台。
 
-5. **ai**
-   - **描述**: The AI Toolkit for TypeScript. From the creators of Next.js, the AI SDK is a free open-source library for building AI-powered applications and agents
-   - **特点**: 由Next.js的创建者开发，提供TypeScript支持，是一个免费开源的库，用于构建AI驱动的应用程序和代理。
+4. **[FlowiseAI/Flowise](https://github.com/FlowiseAI/Flowise)**  
+   **描述**：Build AI Agents, Visually。可视化构建AI Agent的工具，用户无需代码即可通过拖拽方式设计和部署AI智能体，降低开发门槛。
+
+5. **[reworkd/AgentGPT](https://github.com/reworkd/AgentGPT)**  
+   **描述**：🤖 Assemble, configure, and deploy autonomous AI Agents in your browser。允许用户在浏览器中组装、配置并部署自主AI Agent，强调零安装、快速上手的交互体验。
 
 ## 总结
-这些项目共同的特点是提供了丰富的工具和资源，帮助开发者构建和管理AI代理。无论是通过可视化界面、浏览器中的配置工具，还是通过详细的教程和强大的SDK，这些项目都极大地简化了AI代理的开发过程。对于不同水平的开发者来说，这些项目都能提供相应的支持，从初学者到高级用户都能找到适合自己的工具。
+
+上述五个仓库共同体现了当前AI Agent开发的主要趋势：
+
+- **开源与社区驱动**：所有项目均采用开源模式，便于开发者学习、贡献和二次开发。
+- **降低开发门槛**：从可视化编排（Flowise）到浏览器端部署（AgentGPT），再到系统化教程（微软入门课程），均致力于让更多人参与到AI Agent的构建中。
+- **TypeScript/JavaScript生态占主导**：Vercel、Flowise、AgentGPT等项目均深度依赖JavaScript/TypeScript生态，便于与Web开发融合。
+- **工作流自动化与MCP集成**：Activepieces等项目将AI Agent与MCP（Model Context Protocol）结合，推动智能体在更复杂自动化场景中的应用。
+- **聚焦实际应用**：不再局限于理论探讨，而是提供可以直接使用或快速上手的工具，覆盖从学习到生产的全链路。
+
+总体而言，AI Agent框架正朝着更易用、更集成、更自动化的方向发展，成为现代AI应用开发的重要组成部分。

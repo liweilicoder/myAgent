@@ -44,7 +44,7 @@ class BaseLLM:
         log.info(f"🧠 正在【流式】调用 {self.model} 模型...")
         log.debug(f" ➡️ 模型输入:")
         for i, m in enumerate(messages):
-            log.debug(f"role={m['role']}, content={m['content']}...",True)
+            log.debug(f"role={m['role']}, content={m['content']}",True)
 
         try:
             response = self.client.chat.completions.create(
@@ -77,7 +77,7 @@ class BaseLLM:
         log.info(f"🧠 正在【非流式】调用 {self.model} 模型...")
         log.debug(f" ➡️ 模型输入:")
         for i, m in enumerate(messages):
-            log.debug(f"role={m['role']}, content={m['content']}...", True)
+            log.debug(f"role={m['role']}, content={m['content']}", True)
 
 
         try:

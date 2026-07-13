@@ -15,10 +15,26 @@ def test_simple_agent():
     mcp_tool = MCPTool()  # 默认name="mcp"
     agent.add_tool(mcp_tool)
 
-    # 智能体可以使用内置工具
-    response = agent.run("计算 123 + 456")
+    # 连接到社区提供的文件系统服务器
+    fs_tool = MCPTool(
+        name="filesystem",  # 指定唯一名称
+        description="访问本地文件系统",
+        server_command=["npx", "-y", "@modelcontextprotocol/server-filesystem", "."]
+    )
+    agent.add_tool(fs_tool)
+
+    log.test("当前Agent拥有的工具：")
+
+    for tool in agent.list_tools():
+        log.test(f"- {tool}")
+
+    # Agent现在可以自动使用这些工具！
+    response = agent.run("请读取test_data/my_README.md文件，并总结其中的主要内容")
     log.test(response)
+
+
 
 
 if __name__ == "__main__":
     test_simple_agent()
+

@@ -40,6 +40,7 @@ client = MCPClient(config)
 
 from typing import Dict, Any, List, Optional, Union
 import asyncio
+import json
 import os
 
 from josie_agents.utils import log
@@ -81,6 +82,11 @@ class MCPClient:
         self._context_manager = None
 
         log.info(f"🔌 MCP Client 初始化成功")
+
+    @staticmethod
+    def _format_log_data(data: Any) -> str:
+        """格式化 MCP 输入输出日志，遇到非 JSON 对象时退回字符串。"""
+        return json.dumps(data, ensure_ascii=False, indent=4, default=str)
 
     def _prepare_server_source(self, server_source: Union[str, List[str], FastMCP, Dict[str, Any]]):
         """准备服务器源，根据类型创建合适的传输配置"""
@@ -236,29 +242,37 @@ class MCPClient:
         if not self.client:
             raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
 
+        log.info(
+            f"🔌 MCPClient[call_tool] input:\n"
+            f"{self._format_log_data({'tool_name': tool_name, 'arguments': arguments})}"
+        )
         result = await self.client.call_tool(tool_name, arguments)
 
         # 解析结果 - FastMCP 返回 ToolResult 对象
+        output = None
         if hasattr(result, 'content') and result.content:
             if len(result.content) == 1:
                 content = result.content[0]
                 if hasattr(content, 'text'):
-                    return content.text
+                    output = content.text
                 elif hasattr(content, 'data'):
-                    return content.data
-            return [
-                getattr(c, 'text', getattr(c, 'data', str(c)))
-                for c in result.content
-            ]
-        return None
+                    output = content.data
+            else:
+                output = [
+                    getattr(c, 'text', getattr(c, 'data', str(c)))
+                    for c in result.content
+                ]
+        log.info(f"🔌 MCPClient[call_tool] output:\n{self._format_log_data(output)}")
+        return output
 
     async def list_resources(self) -> List[Dict[str, Any]]:
         """列出所有可用的资源"""
         if not self.client:
             raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
 
+        log.info("🔌 MCPClient[list_resources] input: {}")
         result = await self.client.list_resources()
-        return [
+        output = [
             {
                 "uri": resource.uri,
                 "name": resource.name or "",
@@ -267,35 +281,42 @@ class MCPClient:
             }
             for resource in result.resources
         ]
+        log.info(f"🔌 MCPClient[list_resources] output:\n{self._format_log_data(output)}")
+        return output
 
     async def read_resource(self, uri: str) -> Any:
         """读取资源内容"""
         if not self.client:
             raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
 
+        log.info(f"🔌 MCPClient[read_resource] input:\n{self._format_log_data({'uri': uri})}")
         result = await self.client.read_resource(uri)
 
         # 解析资源内容
+        output = None
         if hasattr(result, 'contents') and result.contents:
             if len(result.contents) == 1:
                 content = result.contents[0]
                 if hasattr(content, 'text'):
-                    return content.text
+                    output = content.text
                 elif hasattr(content, 'blob'):
-                    return content.blob
-            return [
-                getattr(c, 'text', getattr(c, 'blob', str(c)))
-                for c in result.contents
-            ]
-        return None
+                    output = content.blob
+            else:
+                output = [
+                    getattr(c, 'text', getattr(c, 'blob', str(c)))
+                    for c in result.contents
+                ]
+        log.info(f"🔌 MCPClient[read_resource] output:\n{self._format_log_data(output)}")
+        return output
 
     async def list_prompts(self) -> List[Dict[str, Any]]:
         """列出所有可用的提示词模板"""
         if not self.client:
             raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
 
+        log.info("🔌 MCPClient[list_prompts] input: {}")
         result = await self.client.list_prompts()
-        return [
+        output = [
             {
                 "name": prompt.name,
                 "description": prompt.description or "",
@@ -303,17 +324,25 @@ class MCPClient:
             }
             for prompt in result.prompts
         ]
+        log.info(f"🔌 MCPClient[list_prompts] output:\n{self._format_log_data(output)}")
+        return output
 
     async def get_prompt(self, prompt_name: str, arguments: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """获取提示词内容"""
         if not self.client:
             raise RuntimeError("Client not connected. Use 'async with client:' context manager.")
 
-        result = await self.client.get_prompt(prompt_name, arguments or {})
+        prompt_arguments = arguments or {}
+        log.info(
+            f"🔌 MCPClient[get_prompt] input:\n"
+            f"{self._format_log_data({'prompt_name': prompt_name, 'arguments': prompt_arguments})}"
+        )
+        result = await self.client.get_prompt(prompt_name, prompt_arguments)
 
         # 解析提示词消息
+        output = []
         if hasattr(result, 'messages') and result.messages:
-            return [
+            output = [
                 {
                     "role": msg.role,
                     "content": getattr(msg.content, 'text', str(msg.content)) if hasattr(msg.content, 'text') else str(
@@ -321,7 +350,8 @@ class MCPClient:
                 }
                 for msg in result.messages
             ]
-        return []
+        log.info(f"🔌 MCPClient[get_prompt] output:\n{self._format_log_data(output)}")
+        return output
 
     async def ping(self) -> bool:
         """测试服务器连接"""
@@ -332,7 +362,9 @@ class MCPClient:
             await self.client.ping()
             return True
         except Exception:
-            return False
+            output = False
+        log.info(f"🔌 MCPClient[ping] output:\n{self._format_log_data(output)}")
+        return output
 
     def get_transport_info(self) -> Dict[str, Any]:
         """获取传输信息"""

@@ -1,3 +1,4 @@
+import json
 import re
 
 from typing import Optional, Iterator
@@ -111,7 +112,7 @@ class JosieSimpleAgent(BaseAgent):
                     clean_response = clean_response.replace(tool_call['original'], "")
 
                 # 构建包含工具结果的消息
-                messages.append({"role": "assistant", "content": clean_response})
+                messages.append({"role": "assistant", "content": response})
 
                 # 添加工具结果
                 tool_results_text = "\n\n".join(tool_results)
@@ -176,6 +177,15 @@ class JosieSimpleAgent(BaseAgent):
     def _parse_tool_parameters(self, tool_name: str, parameters: str) -> dict:
         """智能解析工具参数"""
         param_dict = {}
+        stripped_parameters = parameters.strip()
+
+        if stripped_parameters.startswith('{') and stripped_parameters.endswith('}'):
+            try:
+                parsed_parameters = json.loads(stripped_parameters)
+                if isinstance(parsed_parameters, dict):
+                    return parsed_parameters
+            except json.JSONDecodeError:
+                pass
 
         if '=' in parameters:
             # 格式: key=value 或 action=search,query=Python
@@ -233,10 +243,18 @@ class JosieSimpleAgent(BaseAgent):
         log.success(f"✅ {self.name} 流式响应完成")
 
     def add_tool(self, tool) -> None:
-        """添加工具到Agent（便利方法）"""
+        """便捷方法：将工具注册到当前Agent"""
         if not self.tool_registry:
             self.tool_registry = ToolRegistry()
             self.enable_tool_calling = True
+
+        if hasattr(tool, "auto_expand") and getattr(tool, "auto_expand"):
+            expanded_tools = tool.get_expanded_tools()
+            if expanded_tools:
+                for expanded_tool in expanded_tools:
+                    self.tool_registry.register_tool(expanded_tool)
+                log.info(f"✅ MCP工具 '{tool.name}' 已展开为 {len(expanded_tools)} 个独立工具")
+                return
 
         self.tool_registry.register_tool(tool)
         log.success(f"🔧 工具 '{tool.name}' 已添加")

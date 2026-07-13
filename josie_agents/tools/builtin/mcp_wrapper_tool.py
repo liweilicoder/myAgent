@@ -4,6 +4,7 @@ MCP工具包装器 - 将MCP中的单个工具包装成 BaseTool
 这个模块将MCP服务器的每个工具展开为独立的 BaseTool对象，
 使得Agent可以像调用普通工具一样调用MCP工具。
 """
+import json
 from typing import Dict, Any, List
 
 from josie_agents.tools.base_tool import BaseTool, ToolParameter
@@ -53,11 +54,15 @@ class MCPWrappedTool(BaseTool):
 
         # 解析参数schema
         self._parameters = self._parse_input_schema(tool_info.get('input_schema', {}))
+        parameters_description = json.dumps(
+            [parameter.model_dump() for parameter in self._parameters],
+            ensure_ascii=False
+        )
 
         # 初始化父类
         super().__init__(
             name=tool_name,
-            description=description
+            description=description + ', 参数为: ' + parameters_description
         )
 
         log.info(f"🔌 MCP[wrapped_tool] initialized: {tool_name}, description: {description}")
@@ -110,13 +115,22 @@ class MCPWrappedTool(BaseTool):
         Returns:
             执行结果
         """
+        arguments = params.get('input', params)
+        if isinstance(arguments, str):
+            stripped_parameters = arguments.strip()
+            if stripped_parameters.startswith('{') and stripped_parameters.endswith('}'):
+                parsed_parameters = json.loads(stripped_parameters)
+                if isinstance(parsed_parameters, dict):
+                    arguments = parsed_parameters
+
         # 构建MCP调用参数
         mcp_params = {
             "action": "call_tool",
             "tool_name": self.mcp_tool_name,
-            "arguments": params
+            "arguments": arguments,
         }
+
+        log.info(f"🔌 MCP[wrapped_tool] executed_tool: {mcp_params}")
 
         # 调用父MCP工具
         return self.mcp_tool.run(mcp_params)
-
